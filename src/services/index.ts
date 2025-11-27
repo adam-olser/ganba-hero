@@ -73,3 +73,11 @@ export {
   type NotificationPermission,
 } from './notifications';
 
+// Sound Effects
+export {
+  soundsService,
+  playSound,
+  setSoundEnabled,
+  type SoundEffect,
+} from './sounds';
+

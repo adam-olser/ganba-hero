@@ -1,0 +1,148 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close",
+    "search": "Search",
+    "settings": "Settings"
+  },
+  
+  "auth": {
+    "welcome": "Welcome to Ganba Hero!",
+    "subtitle": "Master Japanese with spaced repetition",
+    "signInGoogle": "Continue with Google",
+    "signInApple": "Continue with Apple",
+    "continueAsGuest": "Continue as Guest",
+    "guestNote": "Your progress will be saved locally",
+    "signOut": "Sign Out",
+    "signOutConfirm": "Are you sure you want to sign out?",
+    "deleteAccount": "Delete Account",
+    "deleteConfirm": "This will permanently delete your account and all progress. This cannot be undone.",
+    "linkAccount": "Link Account",
+    "linkDescription": "Save your progress by linking to Google or Apple"
+  },
+  
+  "onboarding": {
+    "levelChoice": {
+      "title": "Choose Your Level",
+      "subtitle": "Where would you like to start?",
+      "beginner": "I'm new to Japanese",
+      "intermediate": "I know some basics",
+      "advanced": "I've been studying a while"
+    },
+    "goalSetting": {
+      "title": "Set Your Daily Goal",
+      "subtitle": "How many cards would you like to study each day?",
+      "casual": "Casual",
+      "regular": "Regular",
+      "serious": "Serious",
+      "intense": "Intense"
+    }
+  },
+  
+  "home": {
+    "greeting": "Welcome back!",
+    "streak": "day streak",
+    "xp": "XP",
+    "level": "Level",
+    "todayProgress": "Today's Progress",
+    "cardsStudied": "{{count}} / {{goal}} cards",
+    "goalComplete": "Daily goal complete! 🎉",
+    "startStudying": "Start Studying",
+    "continueStudying": "Continue"
+  },
+  
+  "study": {
+    "title": "Study",
+    "dailyReview": "Daily Review",
+    "due": "Due",
+    "new": "New",
+    "startReview": "Start Review",
+    "vocabulary": "Vocabulary",
+    "browseWords": "Browse words",
+    "grammar": "Grammar",
+    "learnPatterns": "Learn patterns",
+    "kanaChart": "Kana Chart",
+    "reference": "Reference",
+    "kanji": "Kanji",
+    "comingSoon": "Coming soon",
+    "currentLevel": "Current Level"
+  },
+  
+  "flashcard": {
+    "tapToFlip": "Tap to reveal",
+    "typeAnswer": "Type your answer",
+    "submit": "Submit",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "showAnswer": "Show Answer",
+    "grades": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy"
+    },
+    "session": {
+      "complete": "Session Complete!",
+      "xpEarned": "XP Earned",
+      "cardsReviewed": "Cards Reviewed",
+      "accuracy": "Accuracy",
+      "newCards": "New Cards",
+      "reviewCards": "Review Cards",
+      "continueLearning": "Continue Learning",
+      "finish": "Finish"
+    }
+  },
+  
+  "progress": {
+    "title": "Progress",
+    "level": "Level {{level}}",
+    "totalXp": "Total XP",
+    "currentStreak": "Current Streak",
+    "longestStreak": "Longest Streak",
+    "days": "days",
+    "cardsLearned": "Cards Learned",
+    "accuracy": "Accuracy",
+    "jlptProgress": "JLPT Progress",
+    "weeklyActivity": "Weekly Activity"
+  },
+  
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "subscription": "Subscription",
+    "free": "Free",
+    "premium": "Premium",
+    "studyPreferences": "Study Preferences",
+    "dailyNewCards": "Daily New Cards",
+    "showFurigana": "Show Furigana",
+    "tts": "Text-to-Speech",
+    "soundEffects": "Sound Effects",
+    "notifications": "Notifications",
+    "dailyReminder": "Daily Reminder",
+    "privacy": "Privacy",
+    "enhancedAnalytics": "Enhanced Analytics",
+    "about": "About",
+    "dataSources": "Data Sources & Licenses",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "version": "Version",
+    "account": "Account"
+  },
+  
+  "errors": {
+    "generic": "Something went wrong",
+    "network": "Network error. Please check your connection.",
+    "auth": "Authentication failed. Please try again.",
+    "loadFailed": "Failed to load data"
+  }
+}
+

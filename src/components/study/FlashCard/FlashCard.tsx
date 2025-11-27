@@ -19,12 +19,14 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSpring,
   interpolate,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Text, Button, Caption, Icon } from '@/components/shared';
 import { colors, spacing, borderRadius, layout } from '@/theme';
-import { speakJapanese, isTTSAvailable } from '@/services';
+import { speakJapanese, isTTSAvailable, playSound } from '@/services';
 import type { StudyCard } from '@/types';
 
 export type CardMode = 'recognition' | 'recall';
@@ -49,14 +51,29 @@ export function FlashCard({
   onSubmitAnswer,
 }: FlashCardProps) {
   const flipProgress = useSharedValue(0);
+  const cardScale = useSharedValue(1);
 
-  // Animate flip
+  // Animate flip with spring and sound
   React.useEffect(() => {
-    flipProgress.value = withTiming(showAnswer ? 1 : 0, {
-      duration: 300,
-      easing: Easing.inOut(Easing.ease),
-    });
-  }, [showAnswer, flipProgress]);
+    if (showAnswer) {
+      // Play flip sound
+      playSound('flip');
+      
+      // Scale down slightly, flip, then scale back
+      cardScale.value = withSpring(0.95, { damping: 15 });
+      flipProgress.value = withTiming(1, {
+        duration: 400,
+        easing: Easing.inOut(Easing.cubic),
+      }, () => {
+        cardScale.value = withSpring(1, { damping: 12 });
+      });
+    } else {
+      flipProgress.value = withTiming(0, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+      });
+    }
+  }, [showAnswer, flipProgress, cardScale]);
 
   const frontAnimatedStyle = useAnimatedStyle(() => {
     const rotateY = interpolate(flipProgress.value, [0, 1], [0, 180]);
@@ -69,10 +86,17 @@ export function FlashCard({
   const backAnimatedStyle = useAnimatedStyle(() => {
     const rotateY = interpolate(flipProgress.value, [0, 1], [180, 360]);
     return {
-      transform: [{ rotateY: `${rotateY}deg` }],
+      transform: [
+        { scale: cardScale.value },
+        { rotateY: `${rotateY}deg` },
+      ],
       backfaceVisibility: 'hidden',
     };
   });
+  
+  const containerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+  }));
 
   const { vocab } = card;
   const [isSpeaking, setIsSpeaking] = useState(false);

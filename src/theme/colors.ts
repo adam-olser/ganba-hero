@@ -35,6 +35,7 @@ export const colors = {
   warning: '#FBBF24',
   warningLight: '#FCD34D',
   warningDark: '#F59E0B',
+  warningMuted: 'rgba(251, 191, 36, 0.15)',
 
   info: '#60A5FA',
   infoLight: '#93C5FD',

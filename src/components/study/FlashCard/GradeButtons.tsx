@@ -5,10 +5,11 @@
  * Shows after the answer is revealed.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Caption } from '@/components/shared';
 import { colors, spacing, borderRadius } from '@/theme';
+import { playSound } from '@/services';
 import type { Quality } from '@/services/srs';
 
 interface GradeButtonsProps {
@@ -51,13 +52,25 @@ const GRADE_OPTIONS: GradeOption[] = [
 ];
 
 export function GradeButtons({ onGrade, showHints = true }: GradeButtonsProps) {
+  const handleGrade = useCallback((quality: Quality) => {
+    // Play appropriate sound
+    if (quality >= 4) {
+      playSound('correct');
+    } else if (quality <= 2) {
+      playSound('incorrect');
+    } else {
+      playSound('buttonTap');
+    }
+    onGrade(quality);
+  }, [onGrade]);
+
   return (
     <View style={styles.container}>
       {GRADE_OPTIONS.map((option) => (
         <TouchableOpacity
           key={option.quality}
           style={[styles.button, { borderColor: option.color }]}
-          onPress={() => onGrade(option.quality)}
+          onPress={() => handleGrade(option.quality)}
           activeOpacity={0.7}
         >
           <Text variant="label" style={{ color: option.color }}>

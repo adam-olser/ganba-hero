@@ -1,3 +1,4 @@
 export { AuthListener } from './AuthListener';
-export { LinkAccountPrompt, LinkAccountBanner } from './LinkAccountPrompt';
+export { LinkAccountPrompt } from './LinkAccountPrompt';
+export { LinkAccountBanner } from './LinkAccountBanner';
 

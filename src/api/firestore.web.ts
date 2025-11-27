@@ -341,3 +341,62 @@ export async function updateStreak(userId: string): Promise<{
   return { currentStreak, longestStreak };
 }
 
+/**
+ * Get user's vocabulary progress map
+ */
+export async function getUserProgress(userId: string): Promise<Map<string, VocabProgress>> {
+  const progressRef = collection(db, 'users', userId, 'progress');
+  const snapshot = await getDocs(progressRef);
+  
+  const progressMap = new Map<string, VocabProgress>();
+  snapshot.docs.forEach(docSnap => {
+    const data = docSnap.data();
+    progressMap.set(docSnap.id, {
+      vocabId: docSnap.id,
+      ...data,
+      nextReview: data.nextReview?.toDate?.() || new Date(),
+      lastReview: data.lastReview?.toDate?.() || null,
+    } as VocabProgress);
+  });
+  
+  return progressMap;
+}
+
+/**
+ * Get weekly stats for last 35 days (5 weeks)
+ */
+export async function getWeeklyStats(userId: string): Promise<Array<{
+  date: string;
+  cardsReviewed: number;
+  correctAnswers: number;
+  xpEarned: number;
+}>> {
+  const dailyStatsRef = collection(db, 'users', userId, 'dailyStats');
+  
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 35);
+  
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+  
+  const q = query(
+    dailyStatsRef,
+    where('date', '>=', startStr),
+    where('date', '<=', endStr),
+    orderBy('date', 'asc')
+  );
+  
+  const snapshot = await getDocs(q);
+  
+  return snapshot.docs.map(docSnap => {
+    const data = docSnap.data();
+    return {
+      date: data.date,
+      cardsReviewed: data.cardsReviewed || 0,
+      correctAnswers: data.correctAnswers || 0,
+      xpEarned: data.totalXpEarned || 0,
+    };
+  });
+}
+

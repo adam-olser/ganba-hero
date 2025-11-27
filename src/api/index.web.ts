@@ -33,12 +33,14 @@ export {
   
   // Progress operations
   getProgress,
+  getUserProgress,
   getDueCards,
   updateProgress,
   
   // Stats operations
   recordStudySession,
   getDailyStats,
+  getWeeklyStats,
   updateStreak,
 } from './firestore.web';
 

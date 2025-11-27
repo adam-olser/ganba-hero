@@ -20,6 +20,7 @@ export {
   calculateSimilarity,
   isAlmostCorrect,
   getInputType,
+  checkAnswer,
 } from './inputNormalizer';
 
 // XP Calculator

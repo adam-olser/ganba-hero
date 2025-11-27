@@ -179,3 +179,51 @@ export function getInputType(input: string): 'romaji' | 'hiragana' | 'katakana' 
   return 'mixed';
 }
 
+/**
+ * Check if user answer matches the term or reading (for recall mode)
+ * Handles romaji, hiragana, and kanji inputs
+ */
+export function checkAnswer(
+  userAnswer: string,
+  correctTerm: string,
+  correctReading: string,
+  readingSynonyms: string[] = []
+): boolean {
+  if (!userAnswer.trim()) return false;
+  
+  // Normalize user input
+  let normalizedUser = normalizeInput(userAnswer);
+  
+  // Convert romaji to hiragana for comparison
+  if (isRomaji(userAnswer.trim())) {
+    normalizedUser = toHiragana(userAnswer.trim().toLowerCase());
+  }
+  
+  // Check against term (exact match for kanji)
+  if (normalizedUser === correctTerm) {
+    return true;
+  }
+  
+  // Check against reading (normalized to hiragana)
+  const normalizedReading = normalizeJapanese(correctReading);
+  if (normalizedUser === normalizedReading) {
+    return true;
+  }
+  
+  // Check reading synonyms (romaji versions like 'taberu')
+  for (const synonym of readingSynonyms) {
+    const normalizedSynonym = normalizeInput(synonym);
+    if (normalizedUser === normalizedSynonym) {
+      return true;
+    }
+    // Also convert synonym to hiragana if it's romaji
+    if (isRomaji(synonym)) {
+      if (normalizedUser === toHiragana(synonym.toLowerCase())) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+

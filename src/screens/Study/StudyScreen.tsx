@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text, Heading2, Heading3, Body, Caption } from '@/components/shared';
@@ -172,55 +172,63 @@ export function StudyScreen() {
           <Heading3 style={styles.sectionTitle}>Quick Actions</Heading3>
           
           <View style={styles.actionGrid}>
-            <Card
-              padding="medium"
-              style={styles.actionCard}
-              onTouchEnd={handleOpenVocabBrowser}
+            <TouchableOpacity 
+              style={styles.actionCardWrapper}
+              onPress={handleOpenVocabBrowser}
+              activeOpacity={0.7}
             >
-              <Text variant="japanese" align="center" style={styles.actionIcon}>
-                📚
-              </Text>
-              <Text variant="label" align="center">Vocabulary</Text>
-              <Caption align="center">Browse words</Caption>
-            </Card>
+              <Card padding="medium" style={styles.actionCard}>
+                <Text variant="japanese" align="center" style={styles.actionIcon}>
+                  📚
+                </Text>
+                <Text variant="label" align="center">Vocabulary</Text>
+                <Caption align="center">Browse words</Caption>
+              </Card>
+            </TouchableOpacity>
             
-            <Card
-              padding="medium"
-              style={styles.actionCard}
-              onTouchEnd={handleStartLesson}
+            <TouchableOpacity 
+              style={styles.actionCardWrapper}
+              onPress={handleStartLesson}
+              activeOpacity={0.7}
             >
-              <Text variant="japanese" align="center" style={styles.actionIcon}>
-                📖
-              </Text>
-              <Text variant="label" align="center">Grammar</Text>
-              <Caption align="center">Learn patterns</Caption>
-            </Card>
+              <Card padding="medium" style={styles.actionCard}>
+                <Text variant="japanese" align="center" style={styles.actionIcon}>
+                  📖
+                </Text>
+                <Text variant="label" align="center">Grammar</Text>
+                <Caption align="center">Learn patterns</Caption>
+              </Card>
+            </TouchableOpacity>
           </View>
           
           <View style={styles.actionGrid}>
-            <Card
-              padding="medium"
-              style={styles.actionCard}
-              onTouchEnd={handleOpenKanaChart}
+            <TouchableOpacity 
+              style={styles.actionCardWrapper}
+              onPress={handleOpenKanaChart}
+              activeOpacity={0.7}
             >
-              <Text variant="japanese" align="center" style={styles.actionIcon}>
-                あ
-              </Text>
-              <Text variant="label" align="center">Kana Chart</Text>
-              <Caption align="center">Reference</Caption>
-            </Card>
+              <Card padding="medium" style={styles.actionCard}>
+                <Text variant="japanese" align="center" style={styles.actionIcon}>
+                  あ
+                </Text>
+                <Text variant="label" align="center">Kana Chart</Text>
+                <Caption align="center">Reference</Caption>
+              </Card>
+            </TouchableOpacity>
             
-            <Card
-              padding="medium"
-              style={styles.actionCard}
-              onTouchEnd={() => Alert.alert('Coming Soon', 'Kanji practice coming soon!')}
+            <TouchableOpacity 
+              style={styles.actionCardWrapper}
+              onPress={() => Alert.alert('Coming Soon', 'Kanji practice coming soon!')}
+              activeOpacity={0.7}
             >
-              <Text variant="japanese" align="center" style={styles.actionIcon}>
-                漢
-              </Text>
-              <Text variant="label" align="center">Kanji</Text>
-              <Caption align="center">Coming soon</Caption>
-            </Card>
+              <Card padding="medium" style={styles.actionCard}>
+                <Text variant="japanese" align="center" style={styles.actionIcon}>
+                  漢
+                </Text>
+                <Text variant="label" align="center">Kanji</Text>
+                <Caption align="center">Coming soon</Caption>
+              </Card>
+            </TouchableOpacity>
           </View>
         </View>
         
@@ -309,8 +317,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.md,
   },
-  actionCard: {
+  actionCardWrapper: {
     flex: 1,
+  },
+  actionCard: {
     alignItems: 'center',
     gap: spacing.sm,
   },

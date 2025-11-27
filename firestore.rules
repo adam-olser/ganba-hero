@@ -23,15 +23,13 @@ service cloud.firestore {
     // Vocabulary - anyone authenticated can read
     match /vocabularies/{vocabId} {
       allow read: if isAuthenticated();
-      // TEMP: Allow writes for seeding. Remove after seeding!
-      allow write: if true;
+      allow write: if false; // Admin only via Firebase Console
     }
     
     // Grammar Points - anyone authenticated can read
     match /grammarPoints/{grammarId} {
       allow read: if isAuthenticated();
-      // TEMP: Allow writes for seeding. Remove after seeding!
-      allow write: if true;
+      allow write: if false; // Admin only via Firebase Console
     }
     
     // ============================================

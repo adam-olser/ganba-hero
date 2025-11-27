@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isPremiumUser() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionStatus in ['premium', 'lifetime'];
+    }
+    
+    // ============================================
+    // CONTENT COLLECTIONS (read-only for users)
+    // ============================================
+    
+    // Vocabulary - anyone authenticated can read
+    match /vocabularies/{vocabId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only via Firebase Console
+    }
+    
+    // Grammar Points - anyone authenticated can read
+    match /grammarPoints/{grammarId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only via Firebase Console
+    }
+    
+    // ============================================
+    // USER COLLECTIONS
+    // ============================================
+    
+    // Users - only own data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      
+      // User's vocabulary progress
+      match /progress/{progressId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's grammar progress
+      match /grammarProgress/{progressId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's study sessions
+      match /studySessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+      
+      // User's daily stats
+      match /dailyStats/{dateId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+  }
+}
+

@@ -4,8 +4,24 @@
       "collectionGroup": "vocabularies",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "level", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "vocabularies",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "jlptLevel", "order": "ASCENDING" },
         { "fieldPath": "frequencyRank", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "grammarPoints",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "level", "order": "ASCENDING" },
+        { "fieldPath": "order", "order": "ASCENDING" }
       ]
     },
     {
@@ -22,13 +38,6 @@
       "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "nextReview", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "studySessions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     }
   ],

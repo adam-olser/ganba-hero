@@ -1,9 +1,9 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
+require('dotenv').config();
 
 const appDirectory = path.resolve(__dirname);
-const babelConfig = require('./babel.config.js');
 
 // React Native Web modules that need to be transpiled
 const compileNodeModules = [
@@ -12,7 +12,6 @@ const compileNodeModules = [
   'react-native-screens',
   'react-native-safe-area-context',
   '@react-navigation',
-  'react-native-vector-icons',
 ].map((moduleName) => path.resolve(appDirectory, `node_modules/${moduleName}`));
 
 const babelLoaderConfiguration = {
@@ -71,6 +70,10 @@ module.exports = {
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js'],
     alias: {
       'react-native$': 'react-native-web',
+      // Web-specific implementations
+      '@/api/auth': path.resolve(appDirectory, 'src/api/auth.web.ts'),
+      '@/api/firestore': path.resolve(appDirectory, 'src/api/firestore.web.ts'),
+      // Path aliases
       '@': path.resolve(appDirectory, 'src'),
       '@/api': path.resolve(appDirectory, 'src/api'),
       '@/components': path.resolve(appDirectory, 'src/components'),
@@ -85,6 +88,22 @@ module.exports = {
       '@/constants': path.resolve(appDirectory, 'src/constants'),
       '@/assets': path.resolve(appDirectory, 'src/assets'),
       '@/i18n': path.resolve(appDirectory, 'src/i18n'),
+      '@/config': path.resolve(appDirectory, 'src/config'),
+      // Web-specific service implementations
+      '@/services/analytics': path.resolve(appDirectory, 'src/services/analytics.web.ts'),
+      // Mock native-only modules for web
+      '@react-native-firebase/auth': path.resolve(appDirectory, 'src/mocks/firebase-auth.web.ts'),
+      '@react-native-firebase/firestore': path.resolve(appDirectory, 'src/mocks/firebase-firestore.web.ts'),
+      '@react-native-firebase/app': path.resolve(appDirectory, 'src/mocks/firebase-app.web.ts'),
+      '@react-native-firebase/analytics': path.resolve(appDirectory, 'src/mocks/firebase-analytics.web.ts'),
+      '@react-native-firebase/crashlytics': path.resolve(appDirectory, 'src/mocks/firebase-crashlytics.web.ts'),
+      '@react-native-google-signin/google-signin': path.resolve(appDirectory, 'src/mocks/google-signin.web.ts'),
+      '@invertase/react-native-apple-authentication': path.resolve(appDirectory, 'src/mocks/apple-auth.web.ts'),
+      '@react-native-async-storage/async-storage': path.resolve(appDirectory, 'src/mocks/async-storage.web.ts'),
+      'react-native-svg': path.resolve(appDirectory, 'src/mocks/react-native-svg.web.tsx'),
+    },
+    fallback: {
+      buffer: require.resolve('buffer/'),
     },
   },
   module: {
@@ -100,7 +119,19 @@ module.exports = {
     }),
     new webpack.DefinePlugin({
       __DEV__: JSON.stringify(process.env.NODE_ENV !== 'production'),
-      process: { env: {} },
+      'process.env': JSON.stringify({
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
+        FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
+        FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+        FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
+        FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
+        FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
+        FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
+      }),
+    }),
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
     }),
   ],
   devServer: {
@@ -112,4 +143,3 @@ module.exports = {
     port: 3000,
   },
 };
-

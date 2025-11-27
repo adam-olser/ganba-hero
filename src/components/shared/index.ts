@@ -23,3 +23,17 @@ export {
 // Icon
 export { Icon, type IconName } from './Icon';
 
+// Error Boundary
+export { ErrorBoundary, ErrorDisplay } from './ErrorBoundary';
+
+// Skeleton Loaders
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonCard,
+  SkeletonFlashcard,
+  SkeletonListItem,
+  SkeletonStats,
+  SkeletonScreen,
+} from './Skeleton';
+

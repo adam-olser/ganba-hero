@@ -12,7 +12,7 @@ import { LinkAccountPrompt, LinkAccountBanner } from '@/components/auth';
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useAuthStore, useSettingsStore } from '@/store';
 import { signOut, deleteAccount, isAnonymous } from '@/api';
-import type { MainTabProps } from '@/types';
+import type { SettingsScreenProps } from '@/types';
 
 interface SettingRowProps {
   label: string;
@@ -40,7 +40,7 @@ function SettingRow({ label, value, onPress, danger }: SettingRowProps) {
   );
 }
 
-export function SettingsScreen({ navigation }: MainTabProps<'SettingsTab'>) {
+export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain'>) {
   const user = useAuthStore(state => state.user);
   const authSignOut = useAuthStore(state => state.signOut);
   const settings = useSettingsStore();
@@ -191,7 +191,7 @@ export function SettingsScreen({ navigation }: MainTabProps<'SettingsTab'>) {
           <Card padding="none">
             <SettingRow
               label="Data Sources & Licenses"
-              onPress={() => console.log('Show attribution')}
+              onPress={() => navigation.navigate('DataSources')}
             />
             <SettingRow
               label="Privacy Policy"

@@ -8,7 +8,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { View, StyleSheet, Platform } from 'react-native';
-import type { MainTabParamList, StudyStackParamList } from '@/types';
+import type { MainTabParamList, StudyStackParamList, SettingsStackParamList } from '@/types';
 import { colors, spacing, layout } from '@/theme';
 import { useResponsive } from '@/hooks';
 import { Icon, type IconName } from '@/components/shared';
@@ -20,11 +20,14 @@ import FlashcardSessionScreen from '@/screens/Study/FlashcardSessionScreen';
 import KanaChartScreen from '@/screens/Study/KanaChartScreen';
 import GrammarListScreen from '@/screens/Study/GrammarListScreen';
 import GrammarDetailScreen from '@/screens/Study/GrammarDetailScreen';
+import VocabBrowserScreen from '@/screens/Study/VocabBrowserScreen';
 import ProgressScreen from '@/screens/Progress/ProgressScreen';
 import SettingsScreen from '@/screens/Settings/SettingsScreen';
+import AttributionScreen from '@/screens/Settings/AttributionScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const StudyStack = createStackNavigator<StudyStackParamList>();
+const SettingsStack = createStackNavigator<SettingsStackParamList>();
 
 // Tab icon component using custom Icon
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
@@ -61,7 +64,18 @@ function StudyStackNavigator() {
       <StudyStack.Screen name="KanaChart" component={KanaChartScreen} />
       <StudyStack.Screen name="LessonList" component={GrammarListScreen} />
       <StudyStack.Screen name="LessonDetail" component={GrammarDetailScreen} />
+      <StudyStack.Screen name="VocabBrowser" component={VocabBrowserScreen} />
     </StudyStack.Navigator>
+  );
+}
+
+// Settings tab with nested stack for sub-screens
+function SettingsStackNavigator() {
+  return (
+    <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
+      <SettingsStack.Screen name="DataSources" component={AttributionScreen} />
+    </SettingsStack.Navigator>
   );
 }
 
@@ -101,7 +115,7 @@ export function MainNavigator() {
       />
       <Tab.Screen
         name="SettingsTab"
-        component={SettingsScreen}
+        component={SettingsStackNavigator}
         options={{ tabBarLabel: 'Settings' }}
       />
     </Tab.Navigator>

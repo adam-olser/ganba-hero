@@ -63,12 +63,10 @@ module.exports = {
     extensions: ['.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js'],
     alias: {
       'react-native$': 'react-native-web',
-      // Web-specific implementations
-      '@/api/auth': path.resolve(appDirectory, 'src/api/auth.web.ts'),
-      '@/api/firestore': path.resolve(appDirectory, 'src/api/firestore.web.ts'),
+      // Web-specific API implementations (must come before general @/api alias)
+      '@/api': path.resolve(appDirectory, 'src/api/index.web.ts'),
       // Path aliases
       '@': path.resolve(appDirectory, 'src'),
-      '@/api': path.resolve(appDirectory, 'src/api'),
       '@/components': path.resolve(appDirectory, 'src/components'),
       '@/screens': path.resolve(appDirectory, 'src/screens'),
       '@/navigation': path.resolve(appDirectory, 'src/navigation'),

@@ -8,10 +8,13 @@ import {
   calculateNextReview,
   isCardDue,
   daysUntilReview,
+  getCardPriority,
+  sortByPriority,
   DEFAULT_SRS_VALUES,
   type Quality,
 } from '../../src/services/srs';
 import { addDays, startOfDay } from 'date-fns';
+import type { VocabProgress } from '../../src/types';
 
 describe('calculateNextReview', () => {
   const baseProgress = {
@@ -139,6 +142,127 @@ describe('daysUntilReview', () => {
   it('should return negative number for past dates', () => {
     const pastDate = addDays(new Date(), -3);
     expect(daysUntilReview(pastDate)).toBe(-3);
+  });
+});
+
+describe('getCardPriority', () => {
+  const createMockProgress = (
+    status: 'new' | 'learning' | 'review' | 'mastered',
+    daysFromToday: number
+  ): VocabProgress => ({
+    vocabId: 'test-vocab',
+    userId: 'test-user',
+    status,
+    interval: status === 'new' ? 0 : status === 'learning' ? 1 : 10,
+    easeFactor: 2.5,
+    repetitions: status === 'new' ? 0 : status === 'learning' ? 1 : 3,
+    nextReview: {
+      toDate: () => addDays(new Date(), daysFromToday),
+    } as any,
+    lastReviewed: {
+      toDate: () => new Date(),
+    } as any,
+    reviewCount: 0,
+  });
+
+  it('should give highest priority to overdue cards', () => {
+    const overdue = createMockProgress('review', -5);
+    const priority = getCardPriority(overdue);
+    expect(priority).toBeGreaterThan(1000);
+  });
+
+  it('should give higher priority to more overdue cards', () => {
+    const slightlyOverdue = createMockProgress('review', -2);
+    const veryOverdue = createMockProgress('review', -10);
+    expect(getCardPriority(veryOverdue)).toBeGreaterThan(getCardPriority(slightlyOverdue));
+  });
+
+  it('should give learning cards priority 500', () => {
+    const learning = createMockProgress('learning', 0);
+    expect(getCardPriority(learning)).toBe(500);
+  });
+
+  it('should give new cards priority 100', () => {
+    const newCard = createMockProgress('new', 0);
+    expect(getCardPriority(newCard)).toBe(100);
+  });
+
+  it('should give non-overdue review cards priority 0', () => {
+    const review = createMockProgress('review', 5);
+    expect(getCardPriority(review)).toBe(0);
+  });
+});
+
+describe('sortByPriority', () => {
+  const createMockProgress = (
+    id: string,
+    status: 'new' | 'learning' | 'review' | 'mastered',
+    daysFromToday: number
+  ): VocabProgress => ({
+    vocabId: id,
+    userId: 'test-user',
+    status,
+    interval: status === 'new' ? 0 : status === 'learning' ? 1 : 10,
+    easeFactor: 2.5,
+    repetitions: status === 'new' ? 0 : status === 'learning' ? 1 : 3,
+    nextReview: {
+      toDate: () => addDays(new Date(), daysFromToday),
+    } as any,
+    lastReviewed: {
+      toDate: () => new Date(),
+    } as any,
+    reviewCount: 0,
+  });
+
+  it('should sort cards with overdue first', () => {
+    const overdue = createMockProgress('overdue', -3);
+    const newCard = createMockProgress('new', 0);
+    const review = createMockProgress('review', 5);
+    
+    const sorted = sortByPriority([newCard, review, overdue]);
+    
+    expect(sorted[0].vocabId).toBe('overdue');
+    expect(sorted[1].vocabId).toBe('new');
+    expect(sorted[2].vocabId).toBe('review');
+  });
+
+  it('should not mutate original array', () => {
+    const cards = [
+      createMockProgress('a', 'review', 1),
+      createMockProgress('b', 'learning', 0),
+    ];
+    const originalFirst = cards[0];
+    
+    sortByPriority(cards);
+    
+    expect(cards[0]).toBe(originalFirst);
+  });
+});
+
+describe('edge cases', () => {
+  it('should handle quality 0 (complete blackout)', () => {
+    const progress = { interval: 10, easeFactor: 2.5, repetitions: 5 };
+    const result = calculateNextReview(progress, 0);
+    
+    expect(result.repetitions).toBe(0);
+    expect(result.interval).toBe(1);
+  });
+
+  it('should handle very long intervals', () => {
+    const progress = { interval: 100, easeFactor: 2.5, repetitions: 10 };
+    const result = calculateNextReview(progress, 5);
+    
+    expect(result.interval).toBe(260); // 100 * 2.6 (EF increases for quality 5)
+    expect(result.status).toBe('mastered');
+  });
+
+  it('should cap ease factor reduction', () => {
+    // Start with minimum ease factor
+    const progress = { interval: 6, easeFactor: 1.3, repetitions: 2 };
+    const result = calculateNextReview(progress, 3);
+    
+    // Should not go below 1.3
+    expect(result.easeFactor).toBeGreaterThanOrEqual(1.3);
   });
 });
 

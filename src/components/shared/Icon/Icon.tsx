@@ -8,7 +8,7 @@ import React from 'react';
 import Svg, { Path, Circle, Rect, G } from 'react-native-svg';
 import { colors } from '@/theme';
 
-export type IconName = 'home' | 'book' | 'chart' | 'settings' | 'close' | 'check' | 'flame' | 'star';
+export type IconName = 'home' | 'book' | 'chart' | 'settings' | 'close' | 'check' | 'flame' | 'star' | 'search' | 'speaker' | 'arrow-left' | 'chevron-right';
 
 interface IconProps {
   name: IconName;
@@ -121,6 +121,65 @@ export function Icon({ name, size = 24, color = colors.textPrimary }: IconProps)
       <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <Path
           d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+    search: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Circle cx={11} cy={11} r={8} stroke={color} strokeWidth={2} />
+        <Path
+          d="M21 21L16.65 16.65"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+    speaker: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M11 5L6 9H2V15H6L11 19V5Z"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d="M15.54 8.46C16.4774 9.39764 17.0039 10.6692 17.0039 11.995C17.0039 13.3208 16.4774 14.5924 15.54 15.53"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d="M19.07 4.93C20.9447 6.80528 21.9979 9.34836 21.9979 12C21.9979 14.6516 20.9447 17.1947 19.07 19.07"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+    'arrow-left': (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M19 12H5M5 12L12 19M5 12L12 5"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+    'chevron-right': (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M9 18L15 12L9 6"
           stroke={color}
           strokeWidth={2}
           strokeLinecap="round"

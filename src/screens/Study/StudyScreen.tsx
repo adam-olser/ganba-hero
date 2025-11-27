@@ -111,6 +111,10 @@ export function StudyScreen() {
     navigation.navigate('KanaChart');
   };
   
+  const handleOpenVocabBrowser = () => {
+    navigation.navigate('VocabBrowser', { level: user?.currentLevel || 'N5' });
+  };
+  
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -171,6 +175,18 @@ export function StudyScreen() {
             <Card
               padding="medium"
               style={styles.actionCard}
+              onTouchEnd={handleOpenVocabBrowser}
+            >
+              <Text variant="japanese" align="center" style={styles.actionIcon}>
+                📚
+              </Text>
+              <Text variant="label" align="center">Vocabulary</Text>
+              <Caption align="center">Browse words</Caption>
+            </Card>
+            
+            <Card
+              padding="medium"
+              style={styles.actionCard}
               onTouchEnd={handleStartLesson}
             >
               <Text variant="japanese" align="center" style={styles.actionIcon}>
@@ -179,7 +195,9 @@ export function StudyScreen() {
               <Text variant="label" align="center">Grammar</Text>
               <Caption align="center">Learn patterns</Caption>
             </Card>
-            
+          </View>
+          
+          <View style={styles.actionGrid}>
             <Card
               padding="medium"
               style={styles.actionCard}
@@ -190,6 +208,18 @@ export function StudyScreen() {
               </Text>
               <Text variant="label" align="center">Kana Chart</Text>
               <Caption align="center">Reference</Caption>
+            </Card>
+            
+            <Card
+              padding="medium"
+              style={styles.actionCard}
+              onTouchEnd={() => Alert.alert('Coming Soon', 'Kanji practice coming soon!')}
+            >
+              <Text variant="japanese" align="center" style={styles.actionIcon}>
+                漢
+              </Text>
+              <Text variant="label" align="center">Kanji</Text>
+              <Caption align="center">Coming soon</Caption>
             </Card>
           </View>
         </View>
@@ -277,6 +307,7 @@ const styles = StyleSheet.create({
   actionGrid: {
     flexDirection: 'row',
     gap: spacing.md,
+    marginBottom: spacing.md,
   },
   actionCard: {
     flex: 1,

@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store';
 import { RootNavigator } from '@/navigation';
 import { onAuthStateChanged } from '@/api/auth';
 import { getUser, createUser } from '@/api/firestore';
+import { ErrorBoundary } from '@/components/shared';
 import type { User } from '@/types';
 
 // Create React Query client
@@ -127,15 +128,17 @@ function AppContent() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
-          <NavigationContainer theme={navigationTheme}>
-            <AppContent />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.root}>
+        <QueryClientProvider client={queryClient}>
+          <SafeAreaProvider>
+            <NavigationContainer theme={navigationTheme}>
+              <AppContent />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

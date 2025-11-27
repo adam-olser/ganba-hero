@@ -12,7 +12,7 @@ const compileNodeModules = [
   'react-native-screens',
   'react-native-safe-area-context',
   '@react-navigation',
-].map((moduleName) => path.resolve(appDirectory, `node_modules/${moduleName}`));
+].map(moduleName => path.resolve(appDirectory, `node_modules/${moduleName}`));
 
 const babelLoaderConfiguration = {
   test: /\.(js|jsx|ts|tsx)$/,
@@ -25,15 +25,8 @@ const babelLoaderConfiguration = {
     loader: 'babel-loader',
     options: {
       cacheDirectory: true,
-      presets: [
-        '@babel/preset-env',
-        '@babel/preset-react',
-        '@babel/preset-typescript',
-      ],
-      plugins: [
-        'react-native-web',
-        '@babel/plugin-transform-runtime',
-      ],
+      presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
+      plugins: ['react-native-web', '@babel/plugin-transform-runtime'],
     },
   },
 };
@@ -93,13 +86,31 @@ module.exports = {
       '@/services/analytics': path.resolve(appDirectory, 'src/services/analytics.web.ts'),
       // Mock native-only modules for web
       '@react-native-firebase/auth': path.resolve(appDirectory, 'src/mocks/firebase-auth.web.ts'),
-      '@react-native-firebase/firestore': path.resolve(appDirectory, 'src/mocks/firebase-firestore.web.ts'),
+      '@react-native-firebase/firestore': path.resolve(
+        appDirectory,
+        'src/mocks/firebase-firestore.web.ts'
+      ),
       '@react-native-firebase/app': path.resolve(appDirectory, 'src/mocks/firebase-app.web.ts'),
-      '@react-native-firebase/analytics': path.resolve(appDirectory, 'src/mocks/firebase-analytics.web.ts'),
-      '@react-native-firebase/crashlytics': path.resolve(appDirectory, 'src/mocks/firebase-crashlytics.web.ts'),
-      '@react-native-google-signin/google-signin': path.resolve(appDirectory, 'src/mocks/google-signin.web.ts'),
-      '@invertase/react-native-apple-authentication': path.resolve(appDirectory, 'src/mocks/apple-auth.web.ts'),
-      '@react-native-async-storage/async-storage': path.resolve(appDirectory, 'src/mocks/async-storage.web.ts'),
+      '@react-native-firebase/analytics': path.resolve(
+        appDirectory,
+        'src/mocks/firebase-analytics.web.ts'
+      ),
+      '@react-native-firebase/crashlytics': path.resolve(
+        appDirectory,
+        'src/mocks/firebase-crashlytics.web.ts'
+      ),
+      '@react-native-google-signin/google-signin': path.resolve(
+        appDirectory,
+        'src/mocks/google-signin.web.ts'
+      ),
+      '@invertase/react-native-apple-authentication': path.resolve(
+        appDirectory,
+        'src/mocks/apple-auth.web.ts'
+      ),
+      '@react-native-async-storage/async-storage': path.resolve(
+        appDirectory,
+        'src/mocks/async-storage.web.ts'
+      ),
       'react-native-svg': path.resolve(appDirectory, 'src/mocks/react-native-svg.web.tsx'),
     },
     fallback: {
@@ -107,11 +118,7 @@ module.exports = {
     },
   },
   module: {
-    rules: [
-      babelLoaderConfiguration,
-      imageLoaderConfiguration,
-      svgLoaderConfiguration,
-    ],
+    rules: [babelLoaderConfiguration, imageLoaderConfiguration, svgLoaderConfiguration],
   },
   plugins: [
     new HtmlWebpackPlugin({

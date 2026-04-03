@@ -56,7 +56,7 @@ module.exports = {
   output: {
     filename: 'bundle.[contenthash].js',
     path: path.resolve(appDirectory, 'build'),
-    publicPath: '/',
+    publicPath: (process.env.PUBLIC_URL || '/').replace(/\/?$/, '/'),
     clean: true,
   },
   resolve: {

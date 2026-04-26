@@ -12,9 +12,11 @@ import { Card, Text, Heading2, Heading3, Body, Caption } from '@/components/shar
 import { Icon } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { getGrammarById } from '@/api';
+import { useScreenAnalytics } from '@/hooks';
 import type { StudyScreenProps, GrammarPoint } from '@/types';
 
 export function GrammarDetailScreen({ navigation, route }: StudyScreenProps<'LessonDetail'>) {
+  useScreenAnalytics('GrammarDetail');
   const { grammarId } = route.params;
 
   const { data: grammar, isLoading, error } = useQuery({

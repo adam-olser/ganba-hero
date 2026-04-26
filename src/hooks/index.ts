@@ -5,3 +5,5 @@ export {
   type ResponsiveInfo,
 } from './useResponsive';
 
+export { useScreenAnalytics } from './useScreenAnalytics';
+

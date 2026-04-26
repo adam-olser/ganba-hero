@@ -13,9 +13,11 @@ import { Icon } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useAuthStore } from '@/store';
 import { getGrammarByLevel } from '@/api';
+import { useScreenAnalytics } from '@/hooks';
 import type { StudyScreenProps, GrammarPoint } from '@/types';
 
 export function GrammarListScreen({ navigation }: StudyScreenProps<'LessonList'>) {
+  useScreenAnalytics('GrammarList');
   const user = useAuthStore(state => state.user);
   const level = user?.currentLevel || 'N5';
 

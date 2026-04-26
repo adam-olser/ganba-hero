@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, Text, Heading2, Heading3, Caption } from '@/components/shared';
 import { Icon } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
+import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore } from '@/store';
 import { getLevelProgress, getLevelTitle } from '@/services/xpCalculator';
 import { getUserProgress, getWeeklyStats } from '@/api';
@@ -110,6 +111,7 @@ function WeekDayBar({ dayName, dayNum, cardsStudied, maxCards, isToday }: WeekDa
 }
 
 export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
+  useScreenAnalytics('Progress');
   const user = useAuthStore(state => state.user);
   
   const levelProgress = getLevelProgress(user?.totalXp || 0);

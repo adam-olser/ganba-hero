@@ -9,6 +9,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Pressable, Platform } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Heading2, Caption } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
+import { speakJapanese } from '@/services/tts';
 import type { StudyScreenProps } from '@/types';
 
 type KanaType = 'hiragana' | 'katakana';
@@ -319,9 +320,11 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
               <Caption color="textMuted">{row.consonant}</Caption>
             </View>
             {row.kana.map((item, colIndex) => (
-              <View
+              <Pressable
                 key={`${rowIndex}-${colIndex}`}
                 style={[styles.kanaCell, !item.char && styles.emptyCell]}
+                onPress={() => item.char && speakJapanese(item.char)}
+                disabled={!item.char}
               >
                 {item.char ? (
                   <>
@@ -333,7 +336,7 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
                     )}
                   </>
                 ) : null}
-              </View>
+              </Pressable>
             ))}
           </View>
         ))}
@@ -341,7 +344,7 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
         {/* Footer info */}
         <View style={styles.footer}>
           <Caption color="textMuted" style={styles.footerText}>
-            Tap on any character to hear pronunciation (coming soon)
+            Tap any character to hear its pronunciation
           </Caption>
         </View>
       </ScrollView>

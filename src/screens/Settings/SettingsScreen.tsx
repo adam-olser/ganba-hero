@@ -10,8 +10,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Text, Heading2, Body, Caption } from '@/components/shared';
 import { LinkAccountPrompt, LinkAccountBanner } from '@/components/auth';
 import { colors, spacing, layout, borderRadius } from '@/theme';
+import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore, useSettingsStore } from '@/store';
 import { signOut, deleteAccount, isAnonymous } from '@/api';
+import {
+  requestNotificationPermission,
+  scheduleDailyReminder,
+  cancelDailyReminder,
+  parseTimeString,
+} from '@/services/notifications';
 import type { SettingsScreenProps } from '@/types';
 
 interface SettingRowProps {
@@ -41,6 +48,7 @@ function SettingRow({ label, value, onPress, danger }: SettingRowProps) {
 }
 
 export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain'>) {
+  useScreenAnalytics('Settings');
   const user = useAuthStore(state => state.user);
   const authSignOut = useAuthStore(state => state.signOut);
   const settings = useSettingsStore();
@@ -69,6 +77,25 @@ export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain
     );
   };
   
+  const handleToggleReminder = async () => {
+    const isEnabled = settings.notificationsEnabled;
+    if (isEnabled) {
+      await cancelDailyReminder();
+      settings.updateSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    const permission = await requestNotificationPermission();
+    if (permission !== 'granted') {
+      Alert.alert('Permission Required', 'Please enable notifications in your device settings.');
+      return;
+    }
+
+    const time = parseTimeString(settings.reminderTime ?? '09:00') ?? { hour: 9, minute: 0 };
+    await scheduleDailyReminder({ hour: time.hour, minute: time.minute });
+    settings.updateSettings({ notificationsEnabled: true });
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
@@ -166,7 +193,7 @@ export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain
             <SettingRow
               label="Daily Reminder"
               value={settings.notificationsEnabled ? settings.reminderTime : 'Off'}
-              onPress={() => console.log('Change reminder')}
+              onPress={handleToggleReminder}
             />
           </Card>
         </View>

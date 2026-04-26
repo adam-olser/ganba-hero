@@ -11,6 +11,7 @@ import { Icon } from '@/components/shared';
 import { colors, spacing, borderRadius, layout } from '@/theme';
 import { StudySession } from '@/types';
 import { calculateXP } from '@/services/xpCalculator';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface SessionResultsProps {
   visible: boolean;
@@ -39,20 +40,22 @@ function StatCard({ label, value, icon, color = colors.textPrimary }: StatCardPr
 }
 
 export function SessionResults({ visible, session, onClose, onContinue }: SessionResultsProps) {
+  const currentStreak = useAuthStore((s) => s.user?.currentStreak ?? 0);
+
   if (!session) return null;
-  
+
   const totalCards = session.results.length;
   const correctAnswers = session.results.filter(r => r.correct).length;
   const accuracy = totalCards > 0 ? Math.round((correctAnswers / totalCards) * 100) : 0;
   const newCardsLearned = session.results.filter(r => session.queue.find(c => c.vocab.id === r.vocabId)?.isNew && r.correct).length;
-  
+
   // Calculate XP
   const xpEarned = calculateXP({
     cardsReviewed: totalCards,
     correctAnswers,
     newCardsLearned,
     perfectSession: accuracy === 100,
-    streakBonus: false, // TODO: Check actual streak
+    streakBonus: currentStreak >= 7,
   });
   
   // Determine message based on accuracy

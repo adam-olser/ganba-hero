@@ -5,7 +5,9 @@
  */
 
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel } from '@/types';
+import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel, ReviewResult, StudyCard } from '@/types';
+import { calculateNextReview, DEFAULT_SRS_VALUES } from '@/services/srs';
+import { calculateXP } from '@/services/xpCalculator';
 
 const db = firestore();
 
@@ -383,6 +385,79 @@ export async function getTodayStats(uid: string): Promise<{
     studyTimeMinutes: number;
     goalCompleted: boolean;
   };
+}
+
+/**
+ * Persist a completed study session: SRS updates + stats + XP in one call.
+ * Returns the XP earned so the caller can update local state.
+ */
+export async function saveSessionResults(
+  uid: string,
+  sessionData: {
+    results: ReviewResult[];
+    cards: StudyCard[];
+    startedAt: Date;
+    dailyGoal: number;
+    currentStreak: number;
+  }
+): Promise<{ xpEarned: number }> {
+  const { results, cards, startedAt, dailyGoal, currentStreak } = sessionData;
+  const durationMinutes = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
+  const totalCards = results.length;
+  const correctAnswers = results.filter(r => r.correct).length;
+  const newCardsLearned = results.filter(
+    r => cards.find(c => c.vocab.id === r.vocabId)?.isNew && r.correct
+  ).length;
+
+  const xpEarned = calculateXP({
+    cardsReviewed: totalCards,
+    correctAnswers,
+    newCardsLearned,
+    perfectSession: correctAnswers === totalCards,
+    streakBonus: currentStreak >= 7,
+  });
+
+  const now = firestore.Timestamp.now();
+  const progressUpdates: Array<{ vocabId: string; progress: Partial<VocabProgress> }> = [];
+
+  for (const result of results) {
+    const card = cards.find(c => c.vocab.id === result.vocabId);
+    if (!card) continue;
+
+    const currentSRS = card.progress ?? DEFAULT_SRS_VALUES;
+    const srsUpdate = calculateNextReview(currentSRS, result.quality);
+
+    progressUpdates.push({
+      vocabId: result.vocabId,
+      progress: {
+        vocabId: result.vocabId,
+        interval: srsUpdate.interval,
+        easeFactor: srsUpdate.easeFactor,
+        repetitions: srsUpdate.repetitions,
+        nextReview: firestore.Timestamp.fromDate(srsUpdate.nextReview),
+        lastReviewed: now,
+        status: srsUpdate.status,
+        // FieldValue.increment is valid inside batch.set+merge; cast needed for TS
+        correctCount: firestore.FieldValue.increment(result.correct ? 1 : 0) as unknown as number,
+        incorrectCount: firestore.FieldValue.increment(result.correct ? 0 : 1) as unknown as number,
+      },
+    });
+  }
+
+  await Promise.all([
+    batchUpdateProgress(uid, progressUpdates),
+    recordStudySession(uid, {
+      cardsReviewed: totalCards,
+      newCardsLearned,
+      correctAnswers,
+      incorrectAnswers: totalCards - correctAnswers,
+      xpEarned,
+      goalCompleted: totalCards >= dailyGoal,
+      durationMinutes,
+    }),
+  ]);
+
+  return { xpEarned };
 }
 
 /**

@@ -30,6 +30,7 @@ export type StudyStackParamList = {
     grammarId: string;
   };
   KanaChart: undefined;
+  KanjiPractice: undefined;
   VocabBrowser: {
     level?: string;
   };

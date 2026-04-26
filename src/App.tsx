@@ -13,10 +13,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { colors } from '@/theme';
 import { analyticsService } from '@/services';
+import { configureRevenueCat } from '@/services/paywall';
+import { requestNotificationPermission, registerForPushNotifications } from '@/services/notifications';
 import { useAuthStore } from '@/store';
 import { RootNavigator } from '@/navigation';
 import { onAuthStateChanged } from '@/api/auth';
-import { getUser, createUser } from '@/api/firestore';
+import { getUser, createUser, updateUser } from '@/api/firestore';
 import { ErrorBoundary } from '@/components/shared';
 import type { User } from '@/types';
 
@@ -62,6 +64,7 @@ function AppContent() {
     // Initialize analytics
     analyticsService.initialize();
     analyticsService.logAppOpen();
+    configureRevenueCat();
 
     // Listen for auth state changes
     const unsubscribe = onAuthStateChanged(async (firebaseUser) => {
@@ -101,6 +104,16 @@ function AppContent() {
           }
           
           setUser(userData);
+
+          // Request push permission and store FCM token
+          requestNotificationPermission().then(async (permission) => {
+            if (permission === 'granted') {
+              const token = await registerForPushNotifications();
+              if (token && userData) {
+                updateUser(userData.uid, { fcmToken: token } as any).catch(() => {});
+              }
+            }
+          });
         } catch (error) {
           console.error('Error fetching user data:', error);
           setStatus('unauthenticated');

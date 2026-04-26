@@ -5,25 +5,51 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Button, Card, Text, Heading2, Heading3, Body, Caption } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
+import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore, useStudyStore, selectDailyProgress } from '@/store';
-import { getVocabByLevel, getDueCards, getVocabByIds } from '@/api';
-import type { StudyScreenProps, StudyCard, StudyStackParamList } from '@/types';
+import { getVocabByLevel, getDueCards, getVocabByIds, updateUser } from '@/api';
+import type { StudyScreenProps, StudyCard, StudyStackParamList, JlptLevel } from '@/types';
 import type { StackNavigationProp } from '@react-navigation/stack';
+
+const JLPT_LEVELS: Array<{ level: JlptLevel; label: string }> = [
+  { level: 'N5', label: 'N5 — Beginner' },
+  { level: 'N4', label: 'N4 — Elementary' },
+  { level: 'N3', label: 'N3 — Intermediate' },
+  { level: 'N2', label: 'N2 — Upper Intermediate' },
+  { level: 'N1', label: 'N1 — Advanced' },
+];
 
 type StudyNavProp = StackNavigationProp<StudyStackParamList, 'StudyHub'>;
 
 export function StudyScreen() {
+  useScreenAnalytics('Study');
   const navigation = useNavigation<StudyNavProp>();
   const user = useAuthStore(state => state.user);
+  const updateUserStore = useAuthStore(state => state.updateUser);
   const dailyProgress = useStudyStore(selectDailyProgress);
   const startSession = useStudyStore(state => state.startSession);
   const setLoading = useStudyStore(state => state.setLoading);
   const isLoading = useStudyStore(state => state.isLoading);
+  const [showLevelModal, setShowLevelModal] = useState(false);
+
+  const handleLevelChange = useCallback(async (level: JlptLevel) => {
+    if (!user || level === user.currentLevel) {
+      setShowLevelModal(false);
+      return;
+    }
+    try {
+      await updateUser(user.uid, { currentLevel: level });
+      updateUserStore({ currentLevel: level });
+    } catch {
+      Alert.alert('Error', 'Could not update level. Please try again.');
+    }
+    setShowLevelModal(false);
+  }, [user, updateUserStore]);
   
   const handleStartReview = useCallback(async () => {
     if (!user) return;
@@ -218,7 +244,7 @@ export function StudyScreen() {
             
             <TouchableOpacity 
               style={styles.actionCardWrapper}
-              onPress={() => Alert.alert('Coming Soon', 'Kanji practice coming soon!')}
+              onPress={() => navigation.navigate('KanjiPractice')}
               activeOpacity={0.7}
             >
               <Card padding="medium" style={styles.actionCard}>
@@ -243,11 +269,42 @@ export function StudyScreen() {
               title="Change"
               variant="ghost"
               size="small"
-              onPress={() => console.log('Change level')}
+              onPress={() => setShowLevelModal(true)}
             />
           </View>
         </Card>
       </ScrollView>
+
+      {/* Level Change Modal */}
+      <Modal
+        visible={showLevelModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLevelModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowLevelModal(false)}>
+          <Pressable style={styles.modalContent} onPress={e => e.stopPropagation()}>
+            <Heading3 style={styles.modalTitle}>Change Level</Heading3>
+            {JLPT_LEVELS.map(({ level, label }) => (
+              <Pressable
+                key={level}
+                style={[
+                  styles.levelOption,
+                  user?.currentLevel === level && styles.levelOptionActive,
+                ]}
+                onPress={() => handleLevelChange(level)}
+              >
+                <Text
+                  variant="body"
+                  color={user?.currentLevel === level ? 'primary' : 'textPrimary'}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -334,6 +391,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    marginBottom: spacing.md,
+  },
+  levelOption: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  levelOptionActive: {
+    backgroundColor: colors.primaryMuted,
   },
 });
 

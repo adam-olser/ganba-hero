@@ -1,17 +1,18 @@
 /**
  * Main Navigator
- * 
+ *
  * Bottom tabs for mobile, sidebar for desktop.
  */
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList, StudyStackParamList, SettingsStackParamList } from '@/types';
 import { colors, spacing, layout } from '@/theme';
 import { useResponsive } from '@/hooks';
-import { Icon, type IconName } from '@/components/shared';
+import { Icon, Text, type IconName } from '@/components/shared';
 
 // Screens
 import { HomeScreen } from '@/screens/Home';
@@ -21,6 +22,7 @@ import KanaChartScreen from '@/screens/Study/KanaChartScreen';
 import GrammarListScreen from '@/screens/Study/GrammarListScreen';
 import GrammarDetailScreen from '@/screens/Study/GrammarDetailScreen';
 import VocabBrowserScreen from '@/screens/Study/VocabBrowserScreen';
+import KanjiPracticeScreen from '@/screens/Study/KanjiPracticeScreen';
 import ProgressScreen from '@/screens/Progress/ProgressScreen';
 import SettingsScreen from '@/screens/Settings/SettingsScreen';
 import AttributionScreen from '@/screens/Settings/AttributionScreen';
@@ -29,21 +31,58 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const StudyStack = createStackNavigator<StudyStackParamList>();
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
 
-// Tab icon component using custom Icon
+const TAB_META: Record<string, { icon: IconName; label: string }> = {
+  HomeTab:     { icon: 'home',     label: 'Home' },
+  StudyTab:    { icon: 'book',     label: 'Study' },
+  ProgressTab: { icon: 'chart',    label: 'Progress' },
+  SettingsTab: { icon: 'settings', label: 'Settings' },
+};
+
+// Tab icon for bottom tab bar
 function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const iconMap: Record<string, IconName> = {
-    HomeTab: 'home',
-    StudyTab: 'book',
-    ProgressTab: 'chart',
-    SettingsTab: 'settings',
-  };
-  
-  const iconName = iconMap[name] || 'home';
-  const iconColor = focused ? colors.primary : colors.textMuted;
-  
+  const iconName = TAB_META[name]?.icon ?? 'home';
   return (
     <View style={styles.iconContainer}>
-      <Icon name={iconName} size={24} color={iconColor} />
+      <Icon name={iconName} size={24} color={focused ? colors.primary : colors.textMuted} />
+    </View>
+  );
+}
+
+// Sidebar rendered on desktop (replaces bottom tab bar)
+function DesktopSidebar({ state, navigation }: BottomTabBarProps) {
+  return (
+    <View style={styles.sidebar}>
+      <View style={styles.sidebarLogoRow}>
+        <Text style={styles.sidebarLogo}>頑</Text>
+        <Text style={styles.sidebarAppName}>Ganba Hero</Text>
+      </View>
+      <View style={styles.sidebarNav}>
+        {state.routes.map((route, index) => {
+          const focused = state.index === index;
+          const meta = TAB_META[route.name] ?? { icon: 'home' as IconName, label: route.name };
+          return (
+            <TouchableOpacity
+              key={route.key}
+              style={[styles.sidebarItem, focused && styles.sidebarItemActive]}
+              onPress={() => navigation.navigate(route.name)}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name={meta.icon}
+                size={20}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+              <Text
+                variant="label"
+                color={focused ? 'primary' : 'textMuted'}
+                style={styles.sidebarLabel}
+              >
+                {meta.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -64,6 +103,7 @@ function StudyStackNavigator() {
       <StudyStack.Screen name="KanaChart" component={KanaChartScreen} />
       <StudyStack.Screen name="LessonList" component={GrammarListScreen} />
       <StudyStack.Screen name="LessonDetail" component={GrammarDetailScreen} />
+      <StudyStack.Screen name="KanjiPractice" component={KanjiPracticeScreen} />
       <StudyStack.Screen name="VocabBrowser" component={VocabBrowserScreen} />
     </StudyStack.Navigator>
   );
@@ -80,16 +120,14 @@ function SettingsStackNavigator() {
 }
 
 export function MainNavigator() {
-  const { showBottomTabs, showSidebar } = useResponsive();
-  
-  // If showing sidebar on desktop, render differently
-  // For now, always use bottom tabs (sidebar to be implemented)
-  
+  const { showSidebar } = useResponsive();
+
   return (
     <Tab.Navigator
+      tabBar={showSidebar ? (props) => <DesktopSidebar {...props} /> : undefined}
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: showSidebar ? styles.tabBarHidden : styles.tabBar,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -97,6 +135,7 @@ export function MainNavigator() {
           <TabIcon name={route.name} focused={focused} />
         ),
       })}
+      sceneContainerStyle={showSidebar ? styles.sidebarSceneContainer : undefined}
     >
       <Tab.Screen
         name="HomeTab"
@@ -130,6 +169,10 @@ const styles = StyleSheet.create({
     height: layout.tabBarHeight,
     paddingBottom: Platform.OS === 'ios' ? spacing.sm : 0,
   },
+  tabBarHidden: {
+    display: 'none',
+    height: 0,
+  },
   tabBarLabel: {
     fontSize: 12,
     fontWeight: '500',
@@ -139,6 +182,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 28,
     height: 28,
+  },
+  // Sidebar (desktop) — absolutely positioned on the left so the scene can offset right
+  sidebar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: layout.sidebarWidth,
+    backgroundColor: colors.surface,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+    paddingTop: spacing['2xl'],
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    zIndex: 10,
+  },
+  sidebarLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing['2xl'],
+    paddingHorizontal: spacing.sm,
+  },
+  sidebarLogo: {
+    fontSize: 28,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  sidebarAppName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  sidebarNav: {
+    gap: spacing.xs,
+  },
+  sidebarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: 10,
+  },
+  sidebarItemActive: {
+    backgroundColor: colors.primaryMuted,
+  },
+  sidebarLabel: {
+    fontSize: 15,
+  },
+  sidebarSceneContainer: {
+    marginLeft: layout.sidebarWidth,
   },
 });
 

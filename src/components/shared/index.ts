@@ -26,6 +26,9 @@ export { Icon, type IconName } from './Icon';
 // Error Boundary
 export { ErrorBoundary, ErrorDisplay } from './ErrorBoundary';
 
+// Paywall
+export { PaywallModal } from './PaywallModal';
+
 // Skeleton Loaders
 export {
   Skeleton,

@@ -40,18 +40,21 @@ export interface Vocabulary {
 
 export interface GrammarPoint {
   id: string;
-  pattern: string; // Grammar pattern (e.g., ～ている)
-  meaning: string; // Brief meaning
+  pattern: string;
+  meaning: string;
   jlptLevel: JlptLevel;
-  explanation: string; // Detailed explanation
-  formation: string; // How to form it
+  explanation: string;
+  formation: string;
   examples: Array<{
     japanese: string;
     reading: string;
     english: string;
   }>;
-  relatedGrammar: string[]; // IDs of related grammar points
-  relatedVocab: string[]; // IDs of related vocabulary
-  order: number; // Display order within level
+  relatedPatterns?: string[];
+  relatedGrammar?: string[];
+  relatedVocab?: string[];
+  tags?: string[];
+  notes?: string;
+  order: number;
 }
 

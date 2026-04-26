@@ -11,11 +11,16 @@ import { Text, Button, Caption } from '@/components/shared';
 import { FlashCard, GradeButtons, CardMode, SessionResults } from '@/components/study';
 import { colors, spacing, borderRadius } from '@/theme';
 import { useStudyStore, selectCurrentCard, selectSessionProgress, selectSessionStats } from '@/store';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useScreenAnalytics } from '@/hooks';
 import { Quality } from '@/services/srs';
 import { checkAnswer } from '@/services/inputNormalizer';
+import { saveSessionResults } from '@/api';
+import { analyticsService } from '@/services/analytics';
 import type { StudyScreenProps, ReviewResult, StudySession } from '@/types';
 
 export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'FlashcardSession'>) {
+  useScreenAnalytics('FlashcardSession');
   const session = useStudyStore(state => state.session);
   const currentCard = useStudyStore(selectCurrentCard);
   const progress = useStudyStore(selectSessionProgress);
@@ -23,6 +28,9 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
   const recordResult = useStudyStore(state => state.recordResult);
   const nextCard = useStudyStore(state => state.nextCard);
   const endSession = useStudyStore(state => state.endSession);
+  const dailyGoal = useStudyStore(state => state.dailyGoal);
+  const user = useAuthStore(state => state.user);
+  const updateUserStore = useAuthStore(state => state.updateUser);
 
   const [showAnswer, setShowAnswer] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
@@ -98,13 +106,42 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
   }, [currentCard, mode, userAnswer, answerStartTime, progress, recordResult, nextCard]);
 
   // Handle session end
-  const handleEndSession = useCallback(() => {
+  const handleEndSession = useCallback(async () => {
     const finished = endSession();
-    if (finished) {
-      setCompletedSession(finished);
-      setShowResults(true);
+    if (!finished) return;
+
+    setCompletedSession(finished);
+    setShowResults(true);
+
+    if (user) {
+      try {
+        const { xpEarned } = await saveSessionResults(user.uid, {
+          results: finished.results,
+          cards: finished.queue,
+          startedAt: finished.startedAt,
+          dailyGoal,
+          currentStreak: user.currentStreak ?? 0,
+        });
+        updateUserStore({ totalXp: (user.totalXp ?? 0) + xpEarned });
+
+        const totalCards = finished.results.length;
+        const correctAnswers = finished.results.filter(r => r.correct).length;
+        const durationMinutes = Math.max(1, Math.round((Date.now() - finished.startedAt.getTime()) / 60000));
+        const newCardsLearned = finished.results.filter(
+          r => finished.queue.find(c => c.vocab.id === r.vocabId)?.isNew && r.correct
+        ).length;
+        analyticsService.logStudySession({
+          duration: durationMinutes,
+          cardsReviewed: totalCards,
+          newCardsLearned,
+          accuracy: totalCards > 0 ? Math.round((correctAnswers / totalCards) * 100) : 0,
+          goalCompleted: totalCards >= dailyGoal,
+        });
+      } catch (err) {
+        console.error('Failed to persist session:', err);
+      }
     }
-  }, [endSession]);
+  }, [endSession, user, dailyGoal, updateUserStore]);
 
   // Handle closing results modal
   const handleCloseResults = useCallback(() => {

@@ -4,23 +4,34 @@
  * Main dashboard with streak, XP, and study button.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Text, Heading2, Heading3, Caption } from '@/components/shared';
+import { Button, Card, Text, Heading2, Heading3, Caption, PaywallModal } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
-import { useResponsive } from '@/hooks';
+import { useResponsive, useScreenAnalytics } from '@/hooks';
 import { useAuthStore, useStudyStore, selectDailyProgress } from '@/store';
-import { getDueCards, getTodayStats } from '@/api';
+import { getDueCards, getTodayStats, updateUser } from '@/api';
 import { getLevelProgress } from '@/services/xpCalculator';
 import type { MainTabProps } from '@/types';
 
 export function HomeScreen({ navigation }: MainTabProps<'HomeTab'>) {
+  useScreenAnalytics('Home');
   const { isMobile } = useResponsive();
   const user = useAuthStore(state => state.user);
+  const updateUserStore = useAuthStore(state => state.updateUser);
   const dailyProgress = useStudyStore(selectDailyProgress);
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  const handlePaywallSuccess = useCallback(async () => {
+    setShowPaywall(false);
+    if (user) {
+      await updateUser(user.uid, { subscriptionStatus: 'premium' });
+      updateUserStore({ subscriptionStatus: 'premium' });
+    }
+  }, [user, updateUserStore]);
 
   // Fetch due cards count
   const { 
@@ -191,12 +202,18 @@ export function HomeScreen({ navigation }: MainTabProps<'HomeTab'>) {
                 title="Upgrade"
                 variant="primary"
                 size="small"
-                onPress={() => console.log('Show paywall')}
+                onPress={() => setShowPaywall(true)}
               />
             </View>
           </Card>
         )}
       </ScrollView>
+
+      <PaywallModal
+        visible={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onSuccess={handlePaywallSuccess}
+      />
     </SafeAreaView>
   );
 }

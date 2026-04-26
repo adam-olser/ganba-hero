@@ -110,6 +110,11 @@ module.exports = {
         'src/mocks/async-storage.web.ts'
       ),
       'react-native-svg': path.resolve(appDirectory, 'src/mocks/react-native-svg.web.tsx'),
+      '@react-native-firebase/messaging': path.resolve(
+        appDirectory,
+        'src/mocks/firebase-messaging.web.ts'
+      ),
+      '@notifee/react-native': path.resolve(appDirectory, 'src/mocks/notifee.web.ts'),
     },
     fallback: {
       buffer: require.resolve('buffer/'),

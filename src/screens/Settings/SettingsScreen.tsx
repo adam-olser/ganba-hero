@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Text, Heading2, Body, Caption } from '@/components/shared';
 import { LinkAccountPrompt, LinkAccountBanner } from '@/components/auth';
@@ -56,25 +56,22 @@ export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain
   const isGuest = isAnonymous();
   
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-              authSignOut();
-            } catch (error) {
-              console.error('Sign out error:', error);
-            }
-          },
-        },
-      ]
-    );
+    const confirmed =
+      Platform.OS === 'web'
+        ? window.confirm('Are you sure you want to sign out?')
+        : await new Promise<boolean>(resolve =>
+            Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Sign Out', style: 'destructive', onPress: () => resolve(true) },
+            ])
+          );
+    if (!confirmed) return;
+    try {
+      await signOut();
+      authSignOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
   
   const handleToggleReminder = async () => {
@@ -96,27 +93,30 @@ export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain
     settings.updateSettings({ notificationsEnabled: true });
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete your account and all your progress. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteAccount();
-              authSignOut();
-            } catch (error) {
-              console.error('Delete account error:', error);
-              Alert.alert('Error', 'Failed to delete account. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteAccount = async () => {
+    const msg =
+      'This will permanently delete your account and all your progress. This action cannot be undone.';
+    const confirmed =
+      Platform.OS === 'web'
+        ? window.confirm(msg)
+        : await new Promise<boolean>(resolve =>
+            Alert.alert('Delete Account', msg, [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ])
+          );
+    if (!confirmed) return;
+    try {
+      await deleteAccount();
+      authSignOut();
+    } catch (error) {
+      console.error('Delete account error:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Failed to delete account. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to delete account. Please try again.');
+      }
+    }
   };
   
   return (

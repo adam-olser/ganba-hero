@@ -39,6 +39,7 @@ export {
   
   // Stats operations
   recordStudySession,
+  saveSessionResults,
   getDailyStats,
   getWeeklyStats,
   updateStreak,

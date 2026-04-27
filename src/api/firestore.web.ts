@@ -5,7 +5,7 @@
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
+import {
   getFirestore,
   collection,
   doc,
@@ -13,22 +13,26 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   limit,
+  writeBatch,
   Timestamp,
   serverTimestamp,
   increment,
 } from 'firebase/firestore';
 import { firebaseConfig } from '@/config/firebase';
-import type { 
-  User, 
-  Vocabulary, 
-  GrammarPoint, 
-  VocabProgress, 
+import { calculateNextReview, DEFAULT_SRS_VALUES } from '@/services/srs';
+import { calculateXP } from '@/services/xpCalculator';
+import type {
+  User,
+  Vocabulary,
+  GrammarPoint,
+  VocabProgress,
   StudySession,
+  ReviewResult,
+  StudyCard,
 } from '@/types';
 
 // Initialize Firebase
@@ -87,13 +91,10 @@ export async function updateUser(uid: string, updates: Partial<User>): Promise<v
 // ========================
 
 export async function getVocabByLevel(level: string): Promise<Vocabulary[]> {
-  const q = query(vocabRef, where('level', '==', level), orderBy('order', 'asc'));
+  const q = query(vocabRef, where('jlptLevel', '==', level), orderBy('frequencyRank', 'asc'));
   const snapshot = await getDocs(q);
-  
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Vocabulary[];
+
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Vocabulary[];
 }
 
 export async function getVocabByIds(ids: string[]): Promise<Vocabulary[]> {
@@ -237,13 +238,15 @@ export async function recordStudySession(
 ): Promise<string> {
   const sessionsRef = collection(db, 'users', userId, 'sessions');
   const sessionDoc = doc(sessionsRef);
-  
+  const date = new Date().toISOString().split('T')[0];
+
   await setDoc(sessionDoc, {
     ...session,
+    date,
     startedAt: serverTimestamp(),
     completedAt: serverTimestamp(),
   });
-  
+
   // Update user's total XP
   const userRef = doc(usersRef, userId);
   await updateDoc(userRef, {
@@ -251,7 +254,17 @@ export async function recordStudySession(
     lastStudyDate: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  
+
+  // Write daily stats so Progress screen can read them
+  const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', date);
+  await setDoc(dailyStatsRef, {
+    date,
+    cardsReviewed: increment(session.cardsReviewed),
+    newCardsLearned: increment((session as { newCardsLearned?: number }).newCardsLearned ?? 0),
+    correctAnswers: increment((session as { correctAnswers?: number }).correctAnswers ?? 0),
+    totalXpEarned: increment(session.xpEarned),
+  }, { merge: true });
+
   return sessionDoc.id;
 }
 
@@ -339,6 +352,74 @@ export async function updateStreak(userId: string): Promise<{
   });
   
   return { currentStreak, longestStreak };
+}
+
+/**
+ * Persist a completed study session: SRS updates + stats + XP in one call.
+ */
+export async function saveSessionResults(
+  uid: string,
+  sessionData: {
+    results: ReviewResult[];
+    cards: StudyCard[];
+    startedAt: Date;
+    dailyGoal: number;
+    currentStreak: number;
+  }
+): Promise<{ xpEarned: number }> {
+  const { results, cards, startedAt, dailyGoal, currentStreak } = sessionData;
+  const durationMinutes = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
+  const totalCards = results.length;
+  const correctAnswers = results.filter(r => r.correct).length;
+  const newCardsLearned = results.filter(
+    r => cards.find(c => c.vocab.id === r.vocabId)?.isNew && r.correct
+  ).length;
+
+  const xpEarned = calculateXP({
+    cardsReviewed: totalCards,
+    correctAnswers,
+    newCardsLearned,
+    perfectSession: correctAnswers === totalCards,
+    streakBonus: currentStreak >= 7,
+  });
+
+  const now = Timestamp.now();
+  const batch = writeBatch(db);
+
+  for (const result of results) {
+    const card = cards.find(c => c.vocab.id === result.vocabId);
+    if (!card) continue;
+
+    const currentSRS = card.progress ?? DEFAULT_SRS_VALUES;
+    const srsUpdate = calculateNextReview(currentSRS, result.quality);
+
+    const progressRef = doc(db, 'users', uid, 'progress', result.vocabId);
+    batch.set(progressRef, {
+      vocabId: result.vocabId,
+      interval: srsUpdate.interval,
+      easeFactor: srsUpdate.easeFactor,
+      repetitions: srsUpdate.repetitions,
+      nextReview: Timestamp.fromDate(srsUpdate.nextReview),
+      lastReviewed: now,
+      status: srsUpdate.status,
+      correctCount: increment(result.correct ? 1 : 0),
+      incorrectCount: increment(result.correct ? 0 : 1),
+    }, { merge: true });
+  }
+
+  await batch.commit();
+
+  await recordStudySession(uid, {
+    cardsReviewed: totalCards,
+    newCardsLearned,
+    correctAnswers,
+    incorrectAnswers: totalCards - correctAnswers,
+    xpEarned,
+    goalCompleted: totalCards >= dailyGoal,
+    durationMinutes,
+  } as Parameters<typeof recordStudySession>[1]);
+
+  return { xpEarned };
 }
 
 /**

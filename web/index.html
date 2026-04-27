@@ -4,26 +4,54 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <meta name="theme-color" content="#0D0D0D" />
-    <meta name="description" content="Ganba Hero - Master Japanese with spaced repetition" />
-    
+
+    <!-- Primary meta -->
+    <title>Ganba Hero — Learn Japanese</title>
+    <meta name="description" content="Master Japanese vocabulary and grammar with spaced repetition flashcards. Study JLPT N5–N1, track your streak, and level up your Japanese." />
+    <meta name="keywords" content="Japanese, JLPT, flashcards, spaced repetition, vocabulary, kanji, grammar, language learning" />
+    <meta name="author" content="Ganba Hero" />
+
+    <!-- Favicon — SVG inline data URI works in all modern browsers, no file copy needed -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230D0D0D'/%3E%3Ctext x='32' y='46' font-family='sans-serif' font-size='40' font-weight='700' fill='%23FF8C42' text-anchor='middle'%3E%E9%A0%91%3C/text%3E%3C/svg%3E" />
+    <link rel="alternate icon" type="image/png" href="icon-192.png" />
+
+    <!-- Apple -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Ganba Hero" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ganba Hero — Learn Japanese" />
+    <meta property="og:description" content="Master Japanese vocabulary and grammar with spaced repetition flashcards. Study JLPT N5–N1, track your streak, and level up your Japanese." />
+    <meta property="og:image" content="icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Ganba Hero" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ganba Hero — Learn Japanese" />
+    <meta name="twitter:description" content="Master Japanese vocabulary and grammar with spaced repetition flashcards. Study JLPT N5–N1, track your streak, and level up your Japanese." />
+    <meta name="twitter:image" content="icon-512.png" />
+
     <!-- PWA -->
     <link rel="manifest" href="manifest.json" />
-    <link rel="apple-touch-icon" href="icon-192.png" />
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    
-    <title>Ganba Hero - Japanese Learning App</title>
-    
+
     <style>
       html, body, #root {
         height: 100%;
         margin: 0;
         padding: 0;
       }
-      
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', sans-serif;
         background-color: #0D0D0D;
@@ -31,13 +59,12 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
-      
+
       #root {
         display: flex;
         flex-direction: column;
       }
-      
-      /* Loading spinner */
+
       .loading-container {
         display: flex;
         flex-direction: column;
@@ -46,7 +73,7 @@
         height: 100%;
         gap: 16px;
       }
-      
+
       .loading-spinner {
         width: 48px;
         height: 48px;
@@ -55,7 +82,7 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
-      
+
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
@@ -69,8 +96,7 @@
         <p>Loading Ganba Hero...</p>
       </div>
     </div>
-    
-    <!-- Service Worker Registration -->
+
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
@@ -86,4 +112,3 @@
     </script>
   </body>
 </html>
-

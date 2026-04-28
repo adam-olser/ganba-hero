@@ -340,43 +340,35 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
                 total={800}
                 locked={false}
               />
-              <JLPTProgressRow 
-                level="N4" 
-                color={colors.jlptN4} 
-                current={0} 
+              <JLPTProgressRow
+                level="N4"
+                color={colors.jlptN4}
+                current={0}
                 total={1500}
-                locked={user?.subscriptionStatus === 'free'}
+                locked={false}
               />
-              <JLPTProgressRow 
-                level="N3" 
-                color={colors.jlptN3} 
-                current={0} 
+              <JLPTProgressRow
+                level="N3"
+                color={colors.jlptN3}
+                current={0}
                 total={3750}
-                locked={user?.subscriptionStatus === 'free'}
+                locked={false}
               />
-              <JLPTProgressRow 
-                level="N2" 
-                color={colors.jlptN2} 
-                current={0} 
+              <JLPTProgressRow
+                level="N2"
+                color={colors.jlptN2}
+                current={0}
                 total={6000}
-                locked={user?.subscriptionStatus === 'free'}
+                locked={false}
               />
-              <JLPTProgressRow 
-                level="N1" 
-                color={colors.jlptN1} 
-                current={0} 
+              <JLPTProgressRow
+                level="N1"
+                color={colors.jlptN1}
+                current={0}
                 total={10000}
-                locked={user?.subscriptionStatus === 'free'}
+                locked={false}
               />
             </View>
-            
-            {user?.subscriptionStatus === 'free' && (
-              <View style={styles.premiumNote}>
-                <Caption color="textMuted">
-                  🔒 Unlock N4-N1 with Premium
-                </Caption>
-              </View>
-            )}
           </Card>
         </View>
       </ScrollView>

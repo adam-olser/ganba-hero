@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Button, Caption } from '@/components/shared';
 import { FlashCard, GradeButtons, CardMode, SessionResults } from '@/components/study';
@@ -160,14 +160,20 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
 
   // Handle quit early
   const handleQuit = useCallback(() => {
-    Alert.alert(
-      'End Session?',
-      'Your progress will be saved.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'End Session', onPress: handleEndSession },
-      ]
-    );
+    if (Platform.OS === 'web') {
+      if (window.confirm('End Session? Your progress will be saved.')) {
+        handleEndSession();
+      }
+    } else {
+      Alert.alert(
+        'End Session?',
+        'Your progress will be saved.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'End Session', onPress: handleEndSession },
+        ]
+      );
+    }
   }, [handleEndSession]);
 
   // No session active

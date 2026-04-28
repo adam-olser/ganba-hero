@@ -25,7 +25,7 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if false; // Admin only via Firebase Console
     }
-    
+
     // Grammar Points - anyone authenticated can read
     match /grammarPoints/{grammarId} {
       allow read: if isAuthenticated();

@@ -143,13 +143,10 @@ export async function searchVocab(searchTerm: string, level?: string): Promise<V
 // ========================
 
 export async function getGrammarByLevel(level: string): Promise<GrammarPoint[]> {
-  const q = query(grammarRef, where('level', '==', level), orderBy('order', 'asc'));
+  const q = query(grammarRef, where('jlptLevel', '==', level), orderBy('order', 'asc'));
   const snapshot = await getDocs(q);
-  
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as GrammarPoint[];
+
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as GrammarPoint[];
 }
 
 export async function getGrammarById(id: string): Promise<GrammarPoint | null> {
@@ -266,6 +263,33 @@ export async function recordStudySession(
   }, { merge: true });
 
   return sessionDoc.id;
+}
+
+export async function getTodayStats(userId: string): Promise<{
+  cardsReviewed: number;
+  newCardsLearned: number;
+  correctAnswers: number;
+  totalXpEarned: number;
+  studyTimeMinutes: number;
+  goalCompleted: boolean;
+}> {
+  const date = new Date().toISOString().split('T')[0];
+  const ref = doc(db, 'users', userId, 'dailyStats', date);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    return { cardsReviewed: 0, newCardsLearned: 0, correctAnswers: 0, totalXpEarned: 0, studyTimeMinutes: 0, goalCompleted: false };
+  }
+
+  const data = snap.data();
+  return {
+    cardsReviewed: data.cardsReviewed ?? 0,
+    newCardsLearned: data.newCardsLearned ?? 0,
+    correctAnswers: data.correctAnswers ?? 0,
+    totalXpEarned: data.totalXpEarned ?? 0,
+    studyTimeMinutes: data.studyTimeMinutes ?? 0,
+    goalCompleted: data.goalCompleted ?? false,
+  };
 }
 
 export async function getDailyStats(userId: string): Promise<{

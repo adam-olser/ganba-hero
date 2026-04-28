@@ -91,20 +91,17 @@ function DesktopSidebar({ state, navigation }: BottomTabBarProps) {
 function StudyStackNavigator() {
   return (
     <StudyStack.Navigator screenOptions={{ headerShown: false }}>
-      <StudyStack.Screen name="StudyHub" component={StudyScreen} />
-      <StudyStack.Screen 
-        name="FlashcardSession" 
+      <StudyStack.Screen name="StudyHub" component={StudyScreen} options={{ title: 'Study — Ganba Hero' }} />
+      <StudyStack.Screen
+        name="FlashcardSession"
         component={FlashcardSessionScreen}
-        options={{ 
-          gestureEnabled: false, // Prevent swipe back during session
-          presentation: 'modal',
-        }}
+        options={{ gestureEnabled: false, presentation: 'modal', title: 'Review — Ganba Hero' }}
       />
-      <StudyStack.Screen name="KanaChart" component={KanaChartScreen} />
-      <StudyStack.Screen name="LessonList" component={GrammarListScreen} />
-      <StudyStack.Screen name="LessonDetail" component={GrammarDetailScreen} />
-      <StudyStack.Screen name="KanjiPractice" component={KanjiPracticeScreen} />
-      <StudyStack.Screen name="VocabBrowser" component={VocabBrowserScreen} />
+      <StudyStack.Screen name="KanaChart" component={KanaChartScreen} options={{ title: 'Kana Chart — Ganba Hero' }} />
+      <StudyStack.Screen name="LessonList" component={GrammarListScreen} options={{ title: 'Grammar — Ganba Hero' }} />
+      <StudyStack.Screen name="LessonDetail" component={GrammarDetailScreen} options={{ title: 'Grammar — Ganba Hero' }} />
+      <StudyStack.Screen name="KanjiPractice" component={KanjiPracticeScreen} options={{ title: 'Kanji — Ganba Hero' }} />
+      <StudyStack.Screen name="VocabBrowser" component={VocabBrowserScreen} options={{ title: 'Vocabulary — Ganba Hero' }} />
     </StudyStack.Navigator>
   );
 }
@@ -113,8 +110,8 @@ function StudyStackNavigator() {
 function SettingsStackNavigator() {
   return (
     <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
-      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
-      <SettingsStack.Screen name="DataSources" component={AttributionScreen} />
+      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} options={{ title: 'Settings — Ganba Hero' }} />
+      <SettingsStack.Screen name="DataSources" component={AttributionScreen} options={{ title: 'Data Sources — Ganba Hero' }} />
     </SettingsStack.Navigator>
   );
 }
@@ -140,22 +137,22 @@ export function MainNavigator() {
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Home' }}
+        options={{ tabBarLabel: 'Home', title: 'Home — Ganba Hero' }}
       />
       <Tab.Screen
         name="StudyTab"
         component={StudyStackNavigator}
-        options={{ tabBarLabel: 'Study' }}
+        options={{ tabBarLabel: 'Study', title: 'Study — Ganba Hero' }}
       />
       <Tab.Screen
         name="ProgressTab"
         component={ProgressScreen}
-        options={{ tabBarLabel: 'Progress' }}
+        options={{ tabBarLabel: 'Progress', title: 'Progress — Ganba Hero' }}
       />
       <Tab.Screen
         name="SettingsTab"
         component={SettingsStackNavigator}
-        options={{ tabBarLabel: 'Settings' }}
+        options={{ tabBarLabel: 'Settings', title: 'Settings — Ganba Hero' }}
       />
     </Tab.Navigator>
   );

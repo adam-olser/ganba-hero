@@ -5,11 +5,11 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   TextInput,
   ActivityIndicator,
   Pressable,
@@ -20,8 +20,9 @@ import { Card, Text, Heading2, Caption } from '@/components/shared';
 import { Icon } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useAuthStore } from '@/store';
-import { getVocabByLevel } from '@/api';
+import { getVocabByLevel, getUserProgress, updateProgress } from '@/api';
 import { speakJapanese, isTTSAvailable } from '@/services';
+import { DEFAULT_SRS_VALUES } from '@/services/srs';
 import type { StudyScreenProps, Vocabulary, JlptLevel } from '@/types';
 
 const JLPT_LEVELS: JlptLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
@@ -33,9 +34,20 @@ export function VocabBrowserScreen({ navigation, route }: StudyScreenProps<'Voca
   const [selectedLevel, setSelectedLevel] = useState<JlptLevel>(initialLevel as JlptLevel);
   const [searchQuery, setSearchQuery] = useState('');
   const [speakingId, setSpeakingId] = useState<string | null>(null);
-  
+  const [addingId, setAddingId] = useState<string | null>(null);
+
   const ttsAvailable = isTTSAvailable();
   const isPremium = user?.subscriptionStatus === 'premium';
+
+  // Track which vocab IDs are already in the user's deck
+  const { data: userProgress } = useQuery({
+    queryKey: ['userProgress', user?.uid],
+    queryFn: () => user?.uid ? getUserProgress(user.uid) : Promise.resolve(new Map()),
+    enabled: !!user?.uid,
+    staleTime: 60 * 1000,
+  });
+  const [localAdded, setLocalAdded] = useState<Set<string>>(new Set());
+  const isInDeck = (id: string) => localAdded.has(id) || userProgress?.has(id) || false;
 
   const { data: vocabulary, isLoading, error } = useQuery({
     queryKey: ['vocabulary', selectedLevel],
@@ -74,7 +86,30 @@ export function VocabBrowserScreen({ navigation, route }: StudyScreenProps<'Voca
     }
   }, [speakingId]);
 
-  const renderVocabItem = ({ item }: { item: Vocabulary }) => (
+  const handleAddToDeck = useCallback(async (vocab: Vocabulary) => {
+    if (!user?.uid || addingId || isInDeck(vocab.id)) return;
+    setAddingId(vocab.id);
+    try {
+      await updateProgress(user.uid, vocab.id, {
+        vocabId: vocab.id,
+        ...DEFAULT_SRS_VALUES,
+        nextReview: new Date(),
+        status: 'new',
+        correctCount: 0,
+        incorrectCount: 0,
+      });
+      setLocalAdded(prev => new Set(prev).add(vocab.id));
+    } catch (err) {
+      console.error('[VocabBrowser] Failed to add card:', err);
+    } finally {
+      setAddingId(null);
+    }
+  }, [user?.uid, addingId, userProgress, localAdded]);
+
+  const renderVocabItem = ({ item }: { item: Vocabulary }) => {
+    const added = isInDeck(item.id);
+    const adding = addingId === item.id;
+    return (
     <Card padding="medium" style={styles.vocabCard}>
       <View style={styles.vocabContent}>
         <View style={styles.vocabMain}>
@@ -97,11 +132,25 @@ export function VocabBrowserScreen({ navigation, route }: StudyScreenProps<'Voca
             <Caption color="textMuted">Also: {item.synonyms.slice(0, 2).join(', ')}</Caption>
           )}
         </View>
-        {item.partOfSpeech && (
-          <View style={styles.posBadge}>
-            <Caption color="textMuted">{item.partOfSpeech}</Caption>
-          </View>
-        )}
+        <View style={styles.cardActions}>
+          {item.partOfSpeech && (
+            <View style={styles.posBadge}>
+              <Caption color="textMuted">{item.partOfSpeech}</Caption>
+            </View>
+          )}
+          <Pressable
+            onPress={() => handleAddToDeck(item)}
+            disabled={added || adding}
+            style={[styles.addBtn, added && styles.addBtnAdded]}
+          >
+            {adding
+              ? <ActivityIndicator size="small" color={colors.primary} />
+              : <Text style={[styles.addBtnText, added && styles.addBtnTextAdded]}>
+                  {added ? '✓' : '+'}
+                </Text>
+            }
+          </Pressable>
+        </View>
       </View>
       {item.exampleJapanese && (
         <View style={styles.example}>
@@ -113,6 +162,7 @@ export function VocabBrowserScreen({ navigation, route }: StudyScreenProps<'Voca
       )}
     </Card>
   );
+  };
 
   const renderLevelTab = (level: JlptLevel) => {
     const isLocked = !isPremium && level !== 'N5';
@@ -362,12 +412,37 @@ const styles = StyleSheet.create({
   meaning: {
     marginTop: spacing.xs,
   },
+  cardActions: {
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
   posBadge: {
     backgroundColor: colors.surfaceHighlight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.full,
     alignSelf: 'flex-start',
+  },
+  addBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addBtnAdded: {
+    backgroundColor: colors.surfaceHighlight,
+  },
+  addBtnText: {
+    fontSize: 18,
+    lineHeight: 22,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  addBtnTextAdded: {
+    color: colors.success,
+    fontSize: 16,
   },
   example: {
     marginTop: spacing.sm,

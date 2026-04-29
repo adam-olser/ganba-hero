@@ -21,6 +21,7 @@ export {
   getUser,
   createUser,
   updateUser,
+  updateUserSettings,
   
   // Vocabulary operations
   getVocabByLevel,

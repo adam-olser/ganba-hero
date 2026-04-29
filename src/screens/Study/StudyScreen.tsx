@@ -5,14 +5,15 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, Pressable, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Text, Heading2, Heading3, Body, Caption } from '@/components/shared';
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore, useStudyStore, selectDailyProgress } from '@/store';
-import { getVocabByLevel, getDueCards, getVocabByIds, updateUser } from '@/api';
+import { getVocabByLevel, getDueCards, getVocabByIds, updateUser, getTodayStats } from '@/api';
 import type { StudyScreenProps, StudyCard, StudyStackParamList, JlptLevel } from '@/types';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -36,6 +37,23 @@ export function StudyScreen() {
   const setLoading = useStudyStore(state => state.setLoading);
   const isLoading = useStudyStore(state => state.isLoading);
   const [showLevelModal, setShowLevelModal] = useState(false);
+
+  const { data: dueCards } = useQuery({
+    queryKey: ['dueCards', user?.uid],
+    queryFn: () => user?.uid ? getDueCards(user.uid) : Promise.resolve([]),
+    enabled: !!user?.uid,
+    staleTime: 60 * 1000,
+  });
+
+  const { data: todayStats } = useQuery({
+    queryKey: ['todayStats', user?.uid],
+    queryFn: () => user?.uid ? getTodayStats(user.uid) : Promise.resolve(null),
+    enabled: !!user?.uid,
+    staleTime: 60 * 1000,
+  });
+
+  const dueCount = dueCards?.length || 0;
+  const newCardsAvailable = Math.max(0, (user?.settings?.dailyNewCards || 5) - (todayStats?.newCardsLearned || 0));
 
   const handleLevelChange = useCallback(async (level: JlptLevel) => {
     if (!user || level === user.currentLevel) {
@@ -112,18 +130,26 @@ export function StudyScreen() {
       }
       
       if (studyCards.length === 0) {
-        Alert.alert('All Done!', 'No cards due for review. Come back later!');
+        if (Platform.OS === 'web') {
+          window.alert('All Done! No cards due for review. Come back later!');
+        } else {
+          Alert.alert('All Done!', 'No cards due for review. Come back later!');
+        }
         return;
       }
-      
+
       // Start session
       startSession(studyCards, 'recognition');
-      
+
       // Navigate to session
       navigation.navigate('FlashcardSession', { mode: 'recognition' });
     } catch (error) {
       console.error('Error starting review:', error);
-      Alert.alert('Error', 'Could not load cards. Please try again.');
+      if (Platform.OS === 'web') {
+        window.alert('Could not load cards. Please try again.');
+      } else {
+        Alert.alert('Error', 'Could not load cards. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -159,11 +185,11 @@ export function StudyScreen() {
             <Heading3>Daily Review</Heading3>
             <View style={styles.statsRow}>
               <View style={styles.statBadge}>
-                <Text variant="label">0</Text>
+                <Text variant="label">{dueCount}</Text>
                 <Caption>Due</Caption>
               </View>
               <View style={styles.statBadge}>
-                <Text variant="label">0</Text>
+                <Text variant="label">{newCardsAvailable}</Text>
                 <Caption>New</Caption>
               </View>
             </View>

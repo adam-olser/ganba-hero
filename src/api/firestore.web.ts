@@ -86,6 +86,15 @@ export async function updateUser(uid: string, updates: Partial<User>): Promise<v
   });
 }
 
+export async function updateUserSettings(uid: string, settings: Partial<User['settings']>): Promise<void> {
+  const docRef = doc(usersRef, uid);
+  const updates: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  for (const [key, value] of Object.entries(settings)) {
+    updates[`settings.${key}`] = value;
+  }
+  await updateDoc(docRef, updates);
+}
+
 // ========================
 // Vocabulary Operations
 // ========================

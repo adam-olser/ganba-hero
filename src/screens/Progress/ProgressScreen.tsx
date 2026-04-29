@@ -285,6 +285,11 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
                 />
               ))}
             </View>
+            {weeklyStats?.length === 0 && (
+              <Caption align="center" color="textMuted" style={styles.emptyState}>
+                No activity yet this week. Start studying!
+              </Caption>
+            )}
           </Card>
         </View>
         
@@ -315,6 +320,11 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
                 </View>
               ))}
             </View>
+            {activeDates.size === 0 && (
+              <Caption align="center" color="textMuted" style={styles.emptyState}>
+                Complete your first study session to see activity here.
+              </Caption>
+            )}
             <View style={styles.calendarLegend}>
               <View style={styles.legendItem}>
                 <View style={[styles.legendDot, styles.legendDotInactive]} />
@@ -601,6 +611,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     alignItems: 'center',
+  },
+  emptyState: {
+    marginTop: spacing.md,
   },
 });
 

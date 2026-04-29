@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
@@ -96,7 +96,10 @@ export function HomeScreen({ navigation }: MainTabProps<'HomeTab'>) {
             <Heading2>{user?.displayName || 'Learner'}</Heading2>
           </View>
           <View style={styles.mascotSmall}>
-            <Text variant="japanese">🦐</Text>
+            {user?.avatarUrl
+              ? <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+              : <Text variant="japanese">🦐</Text>
+            }
           </View>
         </View>
 
@@ -245,6 +248,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   statsCard: {
     padding: spacing.lg,

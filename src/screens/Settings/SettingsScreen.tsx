@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card, Text, Heading2, Body, Caption } from '@/components/shared';
 import { LinkAccountPrompt, LinkAccountBanner } from '@/components/auth';
@@ -142,7 +142,10 @@ export function SettingsScreen({ navigation }: SettingsScreenProps<'SettingsMain
           <Card padding="none">
             <View style={styles.profileRow}>
               <View style={styles.avatar}>
-                <Text variant="japanese">🦐</Text>
+                {user?.avatarUrl
+                  ? <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+                  : <Text variant="japanese">🦐</Text>
+                }
               </View>
               <View style={styles.profileInfo}>
                 <Text variant="body">{user?.displayName || 'Learner'}</Text>
@@ -308,6 +311,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   profileInfo: {
     flex: 1,

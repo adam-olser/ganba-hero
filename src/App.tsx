@@ -79,7 +79,7 @@ function AppContent() {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: firebaseUser.displayName || 'Learner',
-              photoURL: firebaseUser.photoURL,
+              avatarUrl: firebaseUser.photoURL,
               isAnonymous: firebaseUser.isAnonymous,
               currentLevel: 'N5',
               subscriptionStatus: 'free',
@@ -103,6 +103,23 @@ function AppContent() {
             userData = newUser;
           }
           
+          // Sync displayName/avatarUrl from Firebase Auth (may have changed)
+          if (
+            firebaseUser.displayName &&
+            (userData.displayName !== firebaseUser.displayName ||
+              userData.avatarUrl !== firebaseUser.photoURL)
+          ) {
+            userData = {
+              ...userData,
+              displayName: firebaseUser.displayName,
+              avatarUrl: firebaseUser.photoURL,
+            };
+            updateUser(firebaseUser.uid, {
+              displayName: firebaseUser.displayName,
+              avatarUrl: firebaseUser.photoURL,
+            } as any).catch(() => {});
+          }
+
           setUser(userData);
 
           // Request push permission and store FCM token

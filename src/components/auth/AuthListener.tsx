@@ -18,12 +18,14 @@ function createDefaultUser(
   uid: string,
   displayName: string | null,
   email: string | null,
-  isAnonymous: boolean
+  isAnonymous: boolean,
+  avatarUrl: string | null = null
 ): Omit<User, 'createdAt' | 'lastActiveAt'> {
   return {
     uid,
     email: email || undefined,
     displayName: displayName || 'Learner',
+    avatarUrl,
     isAnonymous,
     currentLevel: 'N5' as JlptLevel,
     totalXp: 0,
@@ -66,7 +68,8 @@ export function AuthListener() {
               firebaseUser.uid,
               firebaseUser.displayName,
               firebaseUser.email,
-              firebaseUser.isAnonymous
+              firebaseUser.isAnonymous,
+              firebaseUser.photoURL
             );
             
             const newUser: User = {
@@ -82,8 +85,16 @@ export function AuthListener() {
             setOnboarded(false);
             setHasSeenOnboarding(false);
           } else {
-            // Existing user - update lastActiveAt
-            await updateUser(firebaseUser.uid, { lastActiveAt: new Date() });
+            // Existing user - update lastActiveAt and sync profile from provider
+            const profileUpdates: Partial<User> = { lastActiveAt: new Date() };
+            if (firebaseUser.displayName && user.displayName !== firebaseUser.displayName) {
+              profileUpdates.displayName = firebaseUser.displayName;
+            }
+            if (firebaseUser.photoURL && user.avatarUrl !== firebaseUser.photoURL) {
+              profileUpdates.avatarUrl = firebaseUser.photoURL;
+            }
+            await updateUser(firebaseUser.uid, profileUpdates);
+            user = { ...user, ...profileUpdates };
             
             // Sync local settings with user settings from Firestore
             if (user.settings) {

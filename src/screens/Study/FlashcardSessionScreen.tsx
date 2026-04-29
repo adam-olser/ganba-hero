@@ -15,7 +15,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useScreenAnalytics } from '@/hooks';
 import { Quality } from '@/services/srs';
 import { checkAnswer } from '@/services/inputNormalizer';
-import { saveSessionResults } from '@/api';
+import { saveSessionResults, updateStreak } from '@/api';
 import { analyticsService } from '@/services/analytics';
 import type { StudyScreenProps, ReviewResult, StudySession } from '@/types';
 
@@ -115,14 +115,21 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
 
     if (user) {
       try {
-        const { xpEarned } = await saveSessionResults(user.uid, {
-          results: finished.results,
-          cards: finished.queue,
-          startedAt: finished.startedAt,
-          dailyGoal,
-          currentStreak: user.currentStreak ?? 0,
+        const [{ xpEarned }, streakResult] = await Promise.all([
+          saveSessionResults(user.uid, {
+            results: finished.results,
+            cards: finished.queue,
+            startedAt: finished.startedAt,
+            dailyGoal,
+            currentStreak: user.currentStreak ?? 0,
+          }),
+          updateStreak(user.uid),
+        ]);
+        updateUserStore({
+          totalXp: (user.totalXp ?? 0) + xpEarned,
+          currentStreak: streakResult.currentStreak,
+          longestStreak: streakResult.longestStreak,
         });
-        updateUserStore({ totalXp: (user.totalXp ?? 0) + xpEarned });
 
         const totalCards = finished.results.length;
         const correctAnswers = finished.results.filter(r => r.correct).length;

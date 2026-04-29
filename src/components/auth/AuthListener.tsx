@@ -7,8 +7,8 @@
 
 import { useEffect } from 'react';
 import auth from '@react-native-firebase/auth';
-import { useAuthStore, useSettingsStore } from '@/store';
-import { getUser, createUser, updateUser } from '@/api';
+import { useAuthStore, useSettingsStore, useStudyStore } from '@/store';
+import { getUser, createUser, updateUser, getTodayStats } from '@/api';
 import type { User, JlptLevel } from '@/types';
 
 /**
@@ -52,6 +52,8 @@ export function AuthListener() {
   const hasSeenOnboarding = useSettingsStore(state => state.hasSeenOnboarding);
   const setHasSeenOnboarding = useSettingsStore(state => state.setHasSeenOnboarding);
   const updateLocalSettings = useSettingsStore(state => state.updateSettings);
+  const setDailyGoal = useStudyStore(state => state.setDailyGoal);
+  const setCardsStudiedToday = useStudyStore(state => state.setCardsStudiedToday);
 
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
@@ -115,6 +117,13 @@ export function AuthListener() {
 
           setUser(user);
           setStatus('authenticated');
+
+          // Hydrate daily progress from Firestore so it survives page refreshes
+          const dailyGoal = user.settings?.dailyNewCards ?? 5;
+          setDailyGoal(dailyGoal);
+          getTodayStats(user.uid).then(stats => {
+            setCardsStudiedToday(stats.cardsReviewed);
+          }).catch(() => {});
         } catch (error) {
           console.error('[AuthListener] Error handling auth state:', error);
           
@@ -155,7 +164,7 @@ export function AuthListener() {
     });
 
     return unsubscribe;
-  }, [setUser, setStatus, setOnboarded, hasSeenOnboarding, setHasSeenOnboarding, updateLocalSettings]);
+  }, [setUser, setStatus, setOnboarded, hasSeenOnboarding, setHasSeenOnboarding, updateLocalSettings, setDailyGoal, setCardsStudiedToday]);
 
   // This component doesn't render anything
   return null;

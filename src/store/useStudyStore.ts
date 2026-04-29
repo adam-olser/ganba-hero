@@ -36,6 +36,7 @@ interface StudyState {
   pauseSession: () => void;
   resumeSession: () => void;
   setDailyGoal: (goal: number) => void;
+  setCardsStudiedToday: (count: number) => void;
   incrementCardsStudied: () => void;
   resetDailyProgress: () => void;
   setLoading: (loading: boolean) => void;
@@ -105,7 +106,9 @@ export const useStudyStore = create<StudyState>((set, get) => ({
   })),
   
   setDailyGoal: (dailyGoal) => set({ dailyGoal }),
-  
+
+  setCardsStudiedToday: (cardsStudiedToday) => set({ cardsStudiedToday }),
+
   incrementCardsStudied: () => set((state) => ({
     cardsStudiedToday: state.cardsStudiedToday + 1,
   })),

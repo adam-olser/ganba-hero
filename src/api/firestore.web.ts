@@ -242,7 +242,7 @@ export async function recordStudySession(
   userId: string,
   session: Omit<StudySession, 'id' | 'startedAt' | 'completedAt'>
 ): Promise<string> {
-  const sessionsRef = collection(db, 'users', userId, 'sessions');
+  const sessionsRef = collection(db, 'users', userId, 'studySessions');
   const sessionDoc = doc(sessionsRef);
   const date = new Date().toISOString().split('T')[0];
 
@@ -306,7 +306,7 @@ export async function getDailyStats(userId: string): Promise<{
   xpEarned: number;
   accuracy: number;
 }> {
-  const sessionsRef = collection(db, 'users', userId, 'sessions');
+  const sessionsRef = collection(db, 'users', userId, 'studySessions');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   

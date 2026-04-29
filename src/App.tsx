@@ -15,10 +15,10 @@ import { colors } from '@/theme';
 import { analyticsService } from '@/services';
 import { configureRevenueCat } from '@/services/paywall';
 import { requestNotificationPermission, registerForPushNotifications } from '@/services/notifications';
-import { useAuthStore } from '@/store';
+import { useAuthStore, useStudyStore } from '@/store';
 import { RootNavigator } from '@/navigation';
 import { onAuthStateChanged } from '@/api/auth';
-import { getUser, createUser, updateUser } from '@/api/firestore';
+import { getUser, createUser, updateUser, getTodayStats } from '@/api/firestore';
 import { ErrorBoundary } from '@/components/shared';
 import type { User } from '@/types';
 
@@ -59,6 +59,8 @@ function AppContent() {
   const authStatus = useAuthStore(state => state.status);
   const setUser = useAuthStore(state => state.setUser);
   const setStatus = useAuthStore(state => state.setStatus);
+  const setDailyGoal = useStudyStore(state => state.setDailyGoal);
+  const setCardsStudiedToday = useStudyStore(state => state.setCardsStudiedToday);
 
   useEffect(() => {
     // Initialize analytics
@@ -122,6 +124,12 @@ function AppContent() {
 
           setUser(userData);
 
+          // Hydrate daily progress so it survives page refreshes
+          setDailyGoal(userData.settings?.dailyNewCards ?? 5);
+          getTodayStats(userData.uid).then(stats => {
+            setCardsStudiedToday(stats.cardsReviewed);
+          }).catch(() => {});
+
           // Request push permission and store FCM token
           requestNotificationPermission().then(async (permission) => {
             if (permission === 'granted') {
@@ -141,7 +149,7 @@ function AppContent() {
     });
 
     return () => unsubscribe();
-  }, [setUser, setStatus]);
+  }, [setUser, setStatus, setDailyGoal, setCardsStudiedToday]);
 
   // Show loading while checking auth
   if (authStatus === 'loading') {

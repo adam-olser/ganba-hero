@@ -105,21 +105,18 @@ function AppContent() {
             userData = newUser;
           }
           
-          // Sync displayName/avatarUrl from Firebase Auth (may have changed)
-          if (
-            firebaseUser.displayName &&
-            (userData.displayName !== firebaseUser.displayName ||
-              userData.avatarUrl !== firebaseUser.photoURL)
-          ) {
-            userData = {
-              ...userData,
-              displayName: firebaseUser.displayName,
-              avatarUrl: firebaseUser.photoURL,
-            };
-            updateUser(firebaseUser.uid, {
-              displayName: firebaseUser.displayName,
-              avatarUrl: firebaseUser.photoURL,
-            } as any).catch(() => {});
+          // Always sync profile from Firebase Auth — it is the authoritative source
+          const profileUpdates: Record<string, unknown> = {};
+          if (firebaseUser.displayName && userData.displayName !== firebaseUser.displayName) {
+            profileUpdates.displayName = firebaseUser.displayName;
+          }
+          const canonicalPhoto = firebaseUser.photoURL ?? null;
+          if (userData.avatarUrl !== canonicalPhoto) {
+            profileUpdates.avatarUrl = canonicalPhoto;
+          }
+          if (Object.keys(profileUpdates).length > 0) {
+            userData = { ...userData, ...profileUpdates } as User;
+            updateUser(firebaseUser.uid, profileUpdates as Partial<User>).catch(console.error);
           }
 
           setUser(userData);

@@ -343,10 +343,10 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
           <Heading3 style={styles.sectionTitle}>JLPT Progress</Heading3>
           <Card padding="medium">
             <View style={styles.jlptList}>
-              <JLPTProgressRow 
-                level="N5" 
-                color={colors.jlptN5} 
-                current={masteredCards} 
+              <JLPTProgressRow
+                level="N5"
+                color={colors.jlptN5}
+                current={totalCardsLearned}
                 total={800}
                 locked={false}
               />

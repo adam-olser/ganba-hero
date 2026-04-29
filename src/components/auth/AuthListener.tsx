@@ -24,7 +24,7 @@ function createDefaultUser(
   return {
     uid,
     email: email || undefined,
-    displayName: displayName || 'Learner',
+    displayName: displayName || (isAnonymous ? 'Guest' : 'Learner'),
     avatarUrl,
     isAnonymous,
     currentLevel: 'N5' as JlptLevel,

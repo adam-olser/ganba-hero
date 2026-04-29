@@ -270,7 +270,6 @@ export async function recordStudySession(
     correctAnswers: increment((session as { correctAnswers?: number }).correctAnswers ?? 0),
     totalXpEarned: increment(session.xpEarned),
   }, { merge: true });
-
   return sessionDoc.id;
 }
 

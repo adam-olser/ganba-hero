@@ -80,7 +80,7 @@ function AppContent() {
             const newUser: User = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              displayName: firebaseUser.displayName || 'Learner',
+              displayName: firebaseUser.displayName || (firebaseUser.isAnonymous ? 'Guest' : 'Learner'),
               avatarUrl: firebaseUser.photoURL,
               isAnonymous: firebaseUser.isAnonymous,
               currentLevel: 'N5',

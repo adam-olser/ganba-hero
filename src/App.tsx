@@ -105,18 +105,24 @@ function AppContent() {
             userData = newUser;
           }
           
-          // Always sync profile from Firebase Auth — it is the authoritative source
-          const profileUpdates: Record<string, unknown> = {};
-          if (firebaseUser.displayName && userData.displayName !== firebaseUser.displayName) {
-            profileUpdates.displayName = firebaseUser.displayName;
-          }
-          const canonicalPhoto = firebaseUser.photoURL ?? null;
-          if (userData.avatarUrl !== canonicalPhoto) {
-            profileUpdates.avatarUrl = canonicalPhoto;
-          }
-          if (Object.keys(profileUpdates).length > 0) {
-            userData = { ...userData, ...profileUpdates } as User;
-            updateUser(firebaseUser.uid, profileUpdates as Partial<User>).catch(console.error);
+          // Firebase Auth is the authoritative source for identity fields.
+          // Always overwrite displayName/avatarUrl from Auth so the UI
+          // reflects the signed-in identity even if Firestore lags.
+          const authDisplayName = firebaseUser.displayName
+            || (firebaseUser.isAnonymous ? 'Guest' : (userData?.displayName || 'Learner'));
+          const authAvatarUrl = firebaseUser.photoURL ?? null;
+
+          const needsFirestoreUpdate =
+            userData.displayName !== authDisplayName || userData.avatarUrl !== authAvatarUrl;
+
+          userData = {
+            ...userData,
+            displayName: authDisplayName,
+            avatarUrl: authAvatarUrl,
+          } as User;
+
+          if (needsFirestoreUpdate) {
+            updateUser(firebaseUser.uid, { displayName: authDisplayName, avatarUrl: authAvatarUrl }).catch(console.error);
           }
 
           setUser(userData);

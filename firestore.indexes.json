@@ -39,7 +39,7 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "nextReview", "order": "ASCENDING" }
       ]
-    }
+    },
   ],
   "fieldOverrides": []
 }

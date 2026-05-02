@@ -12,6 +12,8 @@ export { DEFAULT_USER_SETTINGS, createDefaultUser } from './user';
 export type {
   PartOfSpeech,
   KanjiInfo,
+  KanjiCard,
+  KanjiProgress,
   Vocabulary,
   GrammarPoint,
 } from './vocabulary';

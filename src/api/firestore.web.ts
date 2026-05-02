@@ -33,6 +33,9 @@ import type {
   StudySession,
   ReviewResult,
   StudyCard,
+  KanjiCard,
+  KanjiProgress,
+  JlptLevel,
 } from '@/types';
 
 // Initialize Firebase
@@ -49,6 +52,7 @@ export const db = getFirestore(app);
 const usersRef = collection(db, 'users');
 const vocabRef = collection(db, 'vocabularies');
 const grammarRef = collection(db, 'grammarPoints');
+const kanjiRef = collection(db, 'kanji');
 
 // ========================
 // User Operations
@@ -104,6 +108,13 @@ export async function getVocabByLevel(level: string): Promise<Vocabulary[]> {
   const snapshot = await getDocs(q);
 
   return snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Vocabulary[];
+}
+
+export async function getVocabById(id: string): Promise<Vocabulary | null> {
+  const docRef = doc(vocabRef, id);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  return { id: docSnap.id, ...docSnap.data() } as Vocabulary;
 }
 
 export async function getVocabByIds(ids: string[]): Promise<Vocabulary[]> {
@@ -168,6 +179,42 @@ export async function getGrammarById(id: string): Promise<GrammarPoint | null> {
     id: docSnap.id,
     ...docSnap.data(),
   } as GrammarPoint;
+}
+
+// ========================
+// Kanji Operations
+// ========================
+
+export async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
+  const q = query(kanjiRef, where('jlptLevel', '==', level), orderBy('frequencyRank', 'asc'), limit(50));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as KanjiCard[];
+}
+
+export async function getKanjiProgress(userId: string): Promise<Map<string, KanjiProgress>> {
+  const progressRef = collection(db, 'users', userId, 'kanjiProgress');
+  const snapshot = await getDocs(progressRef);
+  const map = new Map<string, KanjiProgress>();
+  snapshot.docs.forEach(d => {
+    const data = d.data();
+    map.set(d.id, {
+      kanjiId: d.id,
+      seen: data.seen ?? false,
+      correct: data.correct ?? 0,
+      incorrect: data.incorrect ?? 0,
+      lastSeen: data.lastSeen?.toDate?.() ?? null,
+    });
+  });
+  return map;
+}
+
+export async function updateKanjiProgress(
+  userId: string,
+  kanjiId: string,
+  data: Partial<Omit<KanjiProgress, 'kanjiId'>>
+): Promise<void> {
+  const ref = doc(db, 'users', userId, 'kanjiProgress', kanjiId);
+  await setDoc(ref, { kanjiId, ...data, lastSeen: serverTimestamp() }, { merge: true });
 }
 
 // ========================
@@ -311,8 +358,8 @@ export async function getDailyStats(userId: string): Promise<{
   
   const q = query(
     sessionsRef,
-    where('completedAt', '>=', Timestamp.fromDate(today)),
-    orderBy('completedAt', 'desc')
+    where('endedAt', '>=', Timestamp.fromDate(today)),
+    orderBy('endedAt', 'desc')
   );
   
   const snapshot = await getDocs(q);

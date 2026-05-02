@@ -7,7 +7,7 @@
 
 import type { StudyCard, VocabProgress } from '@/types';
 import type { Vocabulary } from '@/types';
-import { isCardDue, sortByPriority } from './srs';
+import { isCardDue, getCardPriority } from './srs';
 
 export interface QueueOptions {
   maxNewCards: number;
@@ -52,7 +52,7 @@ export function buildStudyQueue(
         exampleJapanese: vocab.exampleJapanese,
         exampleEnglish: vocab.exampleEnglish,
       },
-      progress,
+      progress: progress ?? null,
       isNew: !progress || progress.status === 'new',
     };
     
@@ -63,13 +63,10 @@ export function buildStudyQueue(
     }
   }
   
-  // Sort due cards by priority (overdue first)
-  const sortedDueCards = dueCards.sort((a, b) => {
-    if (!a.progress || !b.progress) return 0;
-    const priorityA = isCardDue(a.progress.nextReview.toDate()) ? 1 : 0;
-    const priorityB = isCardDue(b.progress.nextReview.toDate()) ? 1 : 0;
-    return priorityB - priorityA;
-  });
+  // Sort due cards by priority (most overdue first)
+  const sortedDueCards = dueCards.sort((a, b) =>
+    getCardPriority(b.progress!) - getCardPriority(a.progress!)
+  );
   
   // Limit cards
   const limitedNewCards = newCards.slice(0, opts.maxNewCards);

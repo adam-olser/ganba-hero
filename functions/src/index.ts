@@ -60,7 +60,7 @@ export const onUserDelete = functions.auth.user().onDelete(async (user) => {
   const userRef = db.collection('users').doc(uid);
   
   // Delete subcollections
-  const subcollections = ['progress', 'grammarProgress', 'studySessions', 'dailyStats'];
+  const subcollections = ['progress', 'grammarProgress', 'studySessions', 'dailyStats', 'kanjiProgress'];
   
   for (const subcollection of subcollections) {
     const snapshot = await userRef.collection(subcollection).get();

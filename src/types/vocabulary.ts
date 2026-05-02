@@ -38,6 +38,26 @@ export interface Vocabulary {
   tags: string[];
 }
 
+export interface KanjiCard {
+  id: string;
+  character: string;
+  onyomi: string[];
+  kunyomi: string[];
+  meanings: string[];
+  jlptLevel: JlptLevel;
+  strokeCount: number;
+  frequencyRank: number;
+  examples: Array<{ word: string; reading: string; meaning: string }>;
+}
+
+export interface KanjiProgress {
+  kanjiId: string;
+  seen: boolean;
+  correct: number;
+  incorrect: number;
+  lastSeen: Date | null;
+}
+
 export interface GrammarPoint {
   id: string;
   pattern: string;

@@ -7,32 +7,10 @@ import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useAuthStore } from '@/store';
 import { speakJapanese } from '@/services/tts';
 import { useScreenAnalytics } from '@/hooks';
-import type { StudyScreenProps, JlptLevel } from '@/types';
-import firestore from '@react-native-firebase/firestore';
-
-interface KanjiCard {
-  id: string;
-  character: string;
-  onyomi: string[];
-  kunyomi: string[];
-  meanings: string[];
-  jlptLevel: JlptLevel;
-  strokeCount: number;
-  frequencyRank: number;
-  examples: Array<{ word: string; reading: string; meaning: string }>;
-}
+import type { StudyScreenProps, JlptLevel, KanjiCard } from '@/types';
+import { getKanjiByLevel } from '@/api';
 
 const JLPT_LEVELS: JlptLevel[] = ['N5', 'N4', 'N3', 'N2', 'N1'];
-
-async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
-  const snapshot = await firestore()
-    .collection('kanji')
-    .where('jlptLevel', '==', level)
-    .orderBy('frequencyRank', 'asc')
-    .limit(50)
-    .get();
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as KanjiCard));
-}
 
 export function KanjiPracticeScreen({ navigation }: StudyScreenProps<'KanjiPractice'>) {
   useScreenAnalytics('KanjiPractice');

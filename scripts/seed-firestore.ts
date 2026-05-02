@@ -1009,6 +1009,47 @@ const N5_GRAMMAR = [
   },
 ];
 
+const N5_KANJI = [
+  { character: '一', onyomi: ['イチ', 'イツ'], kunyomi: ['ひと', 'ひと-つ'], meanings: ['one', '1'], jlptLevel: 'N5', strokeCount: 1, frequencyRank: 1, examples: [{ word: '一人', reading: 'ひとり', meaning: 'one person' }] },
+  { character: '二', onyomi: ['ニ', 'ジ'], kunyomi: ['ふた', 'ふた-つ'], meanings: ['two', '2'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 2, examples: [{ word: '二人', reading: 'ふたり', meaning: 'two people' }] },
+  { character: '三', onyomi: ['サン'], kunyomi: ['み', 'み-つ'], meanings: ['three', '3'], jlptLevel: 'N5', strokeCount: 3, frequencyRank: 3, examples: [{ word: '三月', reading: 'さんがつ', meaning: 'March' }] },
+  { character: '四', onyomi: ['シ'], kunyomi: ['よ', 'よ-つ', 'よっ-つ', 'よん'], meanings: ['four', '4'], jlptLevel: 'N5', strokeCount: 5, frequencyRank: 4, examples: [{ word: '四月', reading: 'しがつ', meaning: 'April' }] },
+  { character: '五', onyomi: ['ゴ'], kunyomi: ['いつ', 'いつ-つ'], meanings: ['five', '5'], jlptLevel: 'N5', strokeCount: 4, frequencyRank: 5, examples: [{ word: '五月', reading: 'ごがつ', meaning: 'May' }] },
+  { character: '六', onyomi: ['ロク'], kunyomi: ['む', 'む-つ', 'むっ-つ'], meanings: ['six', '6'], jlptLevel: 'N5', strokeCount: 4, frequencyRank: 6, examples: [{ word: '六月', reading: 'ろくがつ', meaning: 'June' }] },
+  { character: '七', onyomi: ['シチ'], kunyomi: ['なな', 'なな-つ', 'なの'], meanings: ['seven', '7'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 7, examples: [{ word: '七月', reading: 'しちがつ', meaning: 'July' }] },
+  { character: '八', onyomi: ['ハチ'], kunyomi: ['や', 'や-つ', 'やっ-つ', 'よう'], meanings: ['eight', '8'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 8, examples: [{ word: '八月', reading: 'はちがつ', meaning: 'August' }] },
+  { character: '九', onyomi: ['ク', 'キュウ'], kunyomi: ['ここの', 'ここの-つ'], meanings: ['nine', '9'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 9, examples: [{ word: '九月', reading: 'くがつ', meaning: 'September' }] },
+  { character: '十', onyomi: ['ジュウ', 'ジッ'], kunyomi: ['とお', 'と'], meanings: ['ten', '10'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 10, examples: [{ word: '十月', reading: 'じゅうがつ', meaning: 'October' }] },
+  { character: '日', onyomi: ['ニチ', 'ジツ'], kunyomi: ['ひ', '-び', '-か'], meanings: ['day', 'sun', 'Japan'], jlptLevel: 'N5', strokeCount: 4, frequencyRank: 11, examples: [{ word: '日曜日', reading: 'にちようび', meaning: 'Sunday' }] },
+  { character: '月', onyomi: ['ゲツ', 'ガツ'], kunyomi: ['つき'], meanings: ['moon', 'month'], jlptLevel: 'N5', strokeCount: 4, frequencyRank: 12, examples: [{ word: '月曜日', reading: 'げつようび', meaning: 'Monday' }] },
+  { character: '年', onyomi: ['ネン'], kunyomi: ['とし'], meanings: ['year'], jlptLevel: 'N5', strokeCount: 6, frequencyRank: 13, examples: [{ word: '今年', reading: 'ことし', meaning: 'this year' }] },
+  { character: '人', onyomi: ['ジン', 'ニン'], kunyomi: ['ひと'], meanings: ['person', 'people'], jlptLevel: 'N5', strokeCount: 2, frequencyRank: 14, examples: [{ word: '日本人', reading: 'にほんじん', meaning: 'Japanese person' }] },
+  { character: '山', onyomi: ['サン'], kunyomi: ['やま'], meanings: ['mountain'], jlptLevel: 'N5', strokeCount: 3, frequencyRank: 15, examples: [{ word: '富士山', reading: 'ふじさん', meaning: 'Mt. Fuji' }] },
+  { character: '川', onyomi: ['セン'], kunyomi: ['かわ'], meanings: ['river'], jlptLevel: 'N5', strokeCount: 3, frequencyRank: 16, examples: [{ word: '川', reading: 'かわ', meaning: 'river' }] },
+  { character: '大', onyomi: ['ダイ', 'タイ'], kunyomi: ['おお', 'おお-きい'], meanings: ['big', 'large', 'great'], jlptLevel: 'N5', strokeCount: 3, frequencyRank: 17, examples: [{ word: '大学', reading: 'だいがく', meaning: 'university' }] },
+  { character: '小', onyomi: ['ショウ'], kunyomi: ['ちい-さい', 'こ-', 'お-'], meanings: ['small', 'little'], jlptLevel: 'N5', strokeCount: 3, frequencyRank: 18, examples: [{ word: '小学校', reading: 'しょうがっこう', meaning: 'elementary school' }] },
+  { character: '本', onyomi: ['ホン'], kunyomi: ['もと'], meanings: ['book', 'origin', 'counter for long objects'], jlptLevel: 'N5', strokeCount: 5, frequencyRank: 19, examples: [{ word: '日本', reading: 'にほん', meaning: 'Japan' }] },
+  { character: '水', onyomi: ['スイ'], kunyomi: ['みず'], meanings: ['water'], jlptLevel: 'N5', strokeCount: 4, frequencyRank: 20, examples: [{ word: '水曜日', reading: 'すいようび', meaning: 'Wednesday' }] },
+];
+
+async function seedKanji() {
+  console.log('Seeding kanji data...');
+
+  const batch = db.batch();
+
+  for (const kanji of N5_KANJI) {
+    const docRef = db.collection('kanji').doc();
+    batch.set(docRef, {
+      ...kanji,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+  console.log(`Seeded ${N5_KANJI.length} kanji`);
+}
+
 async function seedVocabulary() {
   console.log('Seeding vocabulary data...');
   
@@ -1049,6 +1090,7 @@ async function main() {
   try {
     await seedVocabulary();
     await seedGrammar();
+    await seedKanji();
     console.log('Seeding complete!');
     process.exit(0);
   } catch (error) {

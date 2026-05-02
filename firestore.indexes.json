@@ -40,6 +40,14 @@
         { "fieldPath": "nextReview", "order": "ASCENDING" }
       ]
     },
+    {
+      "collectionGroup": "kanji",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jlptLevel", "order": "ASCENDING" },
+        { "fieldPath": "frequencyRank", "order": "ASCENDING" }
+      ]
+    }
   ],
   "fieldOverrides": []
 }

@@ -25,12 +25,18 @@ export {
   
   // Vocabulary operations
   getVocabByLevel,
+  getVocabById,
   getVocabByIds,
   searchVocab,
   
   // Grammar operations
   getGrammarByLevel,
   getGrammarById,
+
+  // Kanji operations
+  getKanjiByLevel,
+  getKanjiProgress,
+  updateKanjiProgress,
   
   // Progress operations
   getProgress,

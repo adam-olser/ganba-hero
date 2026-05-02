@@ -29,6 +29,11 @@ export {
   // Grammar operations
   getGrammarByLevel,
   getGrammarById,
+
+  // Kanji operations
+  getKanjiByLevel,
+  getKanjiProgress,
+  updateKanjiProgress,
   
   // Progress operations
   getUserProgress,

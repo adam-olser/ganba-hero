@@ -31,6 +31,12 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if false; // Admin only via Firebase Console
     }
+
+    // Kanji - anyone authenticated can read
+    match /kanji/{kanjiId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only via Firebase Console
+    }
     
     // ============================================
     // USER COLLECTIONS
@@ -63,6 +69,12 @@ service cloud.firestore {
       
       // User's daily stats
       match /dailyStats/{dateId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // User's kanji progress
+      match /kanjiProgress/{kanjiId} {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }

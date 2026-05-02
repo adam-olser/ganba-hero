@@ -5,7 +5,7 @@
  */
 
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel, ReviewResult, StudyCard } from '@/types';
+import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel, ReviewResult, StudyCard, KanjiCard, KanjiProgress } from '@/types';
 import { calculateNextReview, DEFAULT_SRS_VALUES } from '@/services/srs';
 import { calculateXP } from '@/services/xpCalculator';
 
@@ -458,6 +458,53 @@ export async function saveSessionResults(
   ]);
 
   return { xpEarned };
+}
+
+// ============================================
+// KANJI OPERATIONS
+// ============================================
+
+export async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
+  const snapshot = await db
+    .collection('kanji')
+    .where('jlptLevel', '==', level)
+    .orderBy('frequencyRank', 'asc')
+    .limit(50)
+    .get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KanjiCard));
+}
+
+export async function getKanjiProgress(userId: string): Promise<Map<string, KanjiProgress>> {
+  const snapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('kanjiProgress')
+    .get();
+  const map = new Map<string, KanjiProgress>();
+  snapshot.docs.forEach(doc => {
+    const data = doc.data();
+    map.set(doc.id, {
+      kanjiId: doc.id,
+      seen: data.seen ?? false,
+      correct: data.correct ?? 0,
+      incorrect: data.incorrect ?? 0,
+      lastSeen: data.lastSeen?.toDate?.() ?? null,
+    });
+  });
+  return map;
+}
+
+export async function updateKanjiProgress(
+  userId: string,
+  kanjiId: string,
+  data: Partial<Omit<KanjiProgress, 'kanjiId'>>
+): Promise<void> {
+  await db
+    .collection('users')
+    .doc(userId)
+    .collection('kanjiProgress')
+    .doc(kanjiId)
+    .set({ kanjiId, ...data, lastSeen: firestore.FieldValue.serverTimestamp() }, { merge: true });
 }
 
 /**

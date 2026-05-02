@@ -58,7 +58,7 @@ export function buildStudyQueue(
     
     if (!progress || progress.status === 'new') {
       newCards.push(studyCard);
-    } else if (isCardDue(progress.nextReview.toDate())) {
+    } else if (isCardDue(progress.nextReview)) {
       dueCards.push(studyCard);
     }
   }
@@ -139,7 +139,7 @@ export function getQueueCounts(
         masteredCount++;
       }
       
-      if (isCardDue(progress.nextReview.toDate())) {
+      if (isCardDue(progress.nextReview)) {
         dueCount++;
       }
     }

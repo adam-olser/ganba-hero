@@ -9,13 +9,13 @@ import { View, StyleSheet, Modal, Pressable } from 'react-native';
 import { Card, Text, Heading2, Body, Caption, Button } from '@/components/shared';
 import { Icon } from '@/components/shared';
 import { colors, spacing, borderRadius, layout } from '@/theme';
-import { StudySession } from '@/types';
 import { calculateXP } from '@/services/xpCalculator';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { ActiveSession } from '@/store/useStudyStore';
 
 interface SessionResultsProps {
   visible: boolean;
-  session: StudySession | null;
+  session: ActiveSession | null;
   onClose: () => void;
   onContinue?: () => void;
 }
@@ -68,9 +68,9 @@ export function SessionResults({ visible, session, onClose, onContinue }: Sessio
   
   const { title, subtitle } = getMessage();
   
-  // Calculate session duration
-  const durationMs = session.endedAt && session.startedAt
-    ? session.endedAt.getTime() - session.startedAt.getTime()
+  // Calculate session duration from startedAt to now (session ended just before this renders)
+  const durationMs = session.startedAt
+    ? Date.now() - session.startedAt.getTime()
     : 0;
   const durationMinutes = Math.max(1, Math.round(durationMs / 60000));
   

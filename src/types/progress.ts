@@ -1,5 +1,3 @@
-import type { Timestamp } from '@react-native-firebase/firestore';
-
 export type CardStatus = 'new' | 'learning' | 'review' | 'mastered';
 
 export interface VocabProgress {
@@ -10,9 +8,9 @@ export interface VocabProgress {
   easeFactor: number; // Default 2.5, minimum 1.3
   repetitions: number; // Consecutive correct answers
 
-  // Scheduling
-  lastReviewed: Timestamp | null;
-  nextReview: Timestamp;
+  // Scheduling — always plain Date after the Firestore read boundary
+  lastReviewed: Date | null;
+  nextReview: Date;
 
   // Statistics
   correctCount: number;
@@ -25,15 +23,15 @@ export interface VocabProgress {
 export interface GrammarProgress {
   grammarId: string;
   studied: boolean;
-  lastStudied: Timestamp | null;
+  lastStudied: Date | null;
   confidenceLevel: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface StudySession {
   id: string;
   date: string; // YYYY-MM-DD
-  startedAt: Timestamp;
-  endedAt: Timestamp | null;
+  startedAt: Date;
+  endedAt: Date | null;
   cardsReviewed: number;
   newCardsLearned: number;
   correctAnswers: number;

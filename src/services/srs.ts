@@ -109,7 +109,7 @@ export function daysUntilReview(nextReview: Date): number {
  * Higher number = higher priority (should be reviewed first)
  */
 export function getCardPriority(progress: VocabProgress): number {
-  const daysOverdue = -daysUntilReview(progress.nextReview.toDate());
+  const daysOverdue = -daysUntilReview(progress.nextReview);
   
   if (daysOverdue > 0) {
     // Overdue cards get highest priority based on how overdue they are

@@ -17,13 +17,16 @@ import { Quality } from '@/services/srs';
 import { checkAnswer } from '@/services/inputNormalizer';
 import { saveSessionResults, updateStreak } from '@/api';
 import { analyticsService } from '@/services/analytics';
-import type { StudyScreenProps, ReviewResult, StudySession } from '@/types';
+import type { StudyScreenProps, ReviewResult } from '@/types';
+import type { ActiveSession } from '@/store/useStudyStore';
 
 export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'FlashcardSession'>) {
   useScreenAnalytics('FlashcardSession');
   const session = useStudyStore(state => state.session);
   const currentCard = useStudyStore(selectCurrentCard);
   const progress = useStudyStore(selectSessionProgress);
+  const sessionCurrentIndex = useStudyStore(state => state.session?.currentIndex ?? 0);
+  const sessionQueueLength = useStudyStore(state => state.session?.queue.length ?? 0);
   const stats = useStudyStore(selectSessionStats);
   const recordResult = useStudyStore(state => state.recordResult);
   const nextCard = useStudyStore(state => state.nextCard);
@@ -36,7 +39,7 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
   const [userAnswer, setUserAnswer] = useState('');
   const [answerStartTime, setAnswerStartTime] = useState(Date.now());
   const [showResults, setShowResults] = useState(false);
-  const [completedSession, setCompletedSession] = useState<StudySession | null>(null);
+  const [completedSession, setCompletedSession] = useState<ActiveSession | null>(null);
 
   // Determine mode from session
   const mode: CardMode = session?.mode === 'recall' ? 'recall' : 'recognition';
@@ -65,45 +68,6 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
     // If correct, treat as quality 4 (good), if wrong, quality 1 (again)
     // User can still override with grade buttons
   }, [currentCard, userAnswer]);
-
-  // Handle grading
-  const handleGrade = useCallback((quality: Quality) => {
-    if (!currentCard) return;
-
-    const timeTaken = Date.now() - answerStartTime;
-    
-    // Check if answer was correct (for recall mode)
-    const isCorrect = mode === 'recall'
-      ? checkAnswer(
-          userAnswer,
-          currentCard.vocab.term,
-          currentCard.vocab.reading,
-          currentCard.vocab.readingSynonyms
-        )
-      : quality >= 3;
-
-    const result: ReviewResult = {
-      vocabId: currentCard.vocab.id,
-      correct: isCorrect,
-      answerGiven: mode === 'recall' ? userAnswer : '',
-      timeTakenMs: timeTaken,
-      quality,
-    };
-
-    recordResult(result);
-
-    // Check if session is complete
-    if (progress.current >= progress.total) {
-      handleEndSession();
-      return;
-    }
-
-    // Move to next card
-    nextCard();
-    setShowAnswer(false);
-    setUserAnswer('');
-    setAnswerStartTime(Date.now());
-  }, [currentCard, mode, userAnswer, answerStartTime, progress, recordResult, nextCard]);
 
   // Handle session end
   const handleEndSession = useCallback(async () => {
@@ -149,6 +113,47 @@ export function FlashcardSessionScreen({ navigation }: StudyScreenProps<'Flashca
       }
     }
   }, [endSession, user, dailyGoal, updateUserStore]);
+
+  // Handle grading
+  const handleGrade = useCallback((quality: Quality) => {
+    if (!currentCard) return;
+
+    const timeTaken = Date.now() - answerStartTime;
+
+    // Check if answer was correct (for recall mode)
+    const isCorrect = mode === 'recall'
+      ? checkAnswer(
+          userAnswer,
+          currentCard.vocab.term,
+          currentCard.vocab.reading,
+          currentCard.vocab.readingSynonyms
+        )
+      : quality >= 3;
+
+    const result: ReviewResult = {
+      vocabId: currentCard.vocab.id,
+      correct: isCorrect,
+      answerGiven: mode === 'recall' ? userAnswer : '',
+      timeTakenMs: timeTaken,
+      quality,
+    };
+
+    recordResult(result);
+
+    // Use primitive indices instead of the derived progress object to keep this
+    // callback stable — selectSessionProgress returns a new object on every store
+    // update, which would otherwise recreate handleGrade on every card advance.
+    if (sessionCurrentIndex + 1 >= sessionQueueLength) {
+      handleEndSession();
+      return;
+    }
+
+    // Move to next card
+    nextCard();
+    setShowAnswer(false);
+    setUserAnswer('');
+    setAnswerStartTime(Date.now());
+  }, [currentCard, mode, userAnswer, answerStartTime, sessionCurrentIndex, sessionQueueLength, recordResult, nextCard, handleEndSession]);
 
   // Handle closing results modal
   const handleCloseResults = useCallback(() => {

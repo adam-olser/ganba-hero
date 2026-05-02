@@ -236,5 +236,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default StreakCalendar;
+export default React.memo(StreakCalendar);
 

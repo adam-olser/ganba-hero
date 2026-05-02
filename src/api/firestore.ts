@@ -162,20 +162,28 @@ export async function getGrammarById(id: string): Promise<GrammarPoint | null> {
 // ============================================
 
 /**
- * Get user's vocabulary progress
+ * Get user's vocabulary progress.
+ * @param limitCount - Maximum number of progress records to fetch (default 500).
  */
-export async function getUserProgress(uid: string): Promise<Map<string, VocabProgress>> {
+export async function getUserProgress(uid: string, limitCount = 500): Promise<Map<string, VocabProgress>> {
   const snapshot = await db
     .collection('users')
     .doc(uid)
     .collection('progress')
+    .limit(limitCount)
     .get();
   
   const progressMap = new Map<string, VocabProgress>();
   snapshot.docs.forEach(doc => {
-    progressMap.set(doc.id, { vocabId: doc.id, ...doc.data() } as VocabProgress);
+    const data = doc.data();
+    progressMap.set(doc.id, {
+      ...data,
+      vocabId: doc.id,
+      nextReview: data.nextReview?.toDate?.() ?? new Date(),
+      lastReviewed: data.lastReviewed?.toDate?.() ?? null,
+    } as VocabProgress);
   });
-  
+
   return progressMap;
 }
 
@@ -192,7 +200,15 @@ export async function getDueCards(uid: string): Promise<VocabProgress[]> {
     .where('nextReview', '<=', now)
     .get();
   
-  return snapshot.docs.map(doc => ({ vocabId: doc.id, ...doc.data() } as VocabProgress));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      ...data,
+      vocabId: doc.id,
+      nextReview: data.nextReview?.toDate?.() ?? new Date(),
+      lastReviewed: data.lastReviewed?.toDate?.() ?? null,
+    } as VocabProgress;
+  });
 }
 
 /**
@@ -245,18 +261,20 @@ export async function recordStudySession(
     xpEarned: number;
     goalCompleted: boolean;
     durationMinutes: number;
+    startedAt: Date;
   }
 ): Promise<void> {
+  const { startedAt, ...sessionFields } = session;
   const date = new Date().toISOString().split('T')[0];
-  
+
   await db
     .collection('users')
     .doc(uid)
     .collection('studySessions')
     .add({
-      ...session,
+      ...sessionFields,
       date,
-      startedAt: firestore.FieldValue.serverTimestamp(),
+      startedAt: firestore.Timestamp.fromDate(startedAt),
       endedAt: firestore.FieldValue.serverTimestamp(),
     });
   
@@ -434,8 +452,8 @@ export async function saveSessionResults(
         interval: srsUpdate.interval,
         easeFactor: srsUpdate.easeFactor,
         repetitions: srsUpdate.repetitions,
-        nextReview: firestore.Timestamp.fromDate(srsUpdate.nextReview),
-        lastReviewed: now,
+        nextReview: srsUpdate.nextReview,
+        lastReviewed: now.toDate(),
         status: srsUpdate.status,
         // FieldValue.increment is valid inside batch.set+merge; cast needed for TS
         correctCount: firestore.FieldValue.increment(result.correct ? 1 : 0) as unknown as number,
@@ -454,6 +472,7 @@ export async function saveSessionResults(
       xpEarned,
       goalCompleted: totalCards >= dailyGoal,
       durationMinutes,
+      startedAt,
     }),
   ]);
 

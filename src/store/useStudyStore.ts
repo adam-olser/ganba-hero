@@ -9,7 +9,11 @@ import type { StudyCard, ReviewResult } from '@/types';
 
 export type SessionMode = 'recognition' | 'recall' | 'mixed';
 
-interface StudySession {
+/**
+ * Represents an in-progress (active) study session held in memory.
+ * Distinct from the persisted StudySession DB record in @/types.
+ */
+export interface ActiveSession {
   mode: SessionMode;
   queue: StudyCard[];
   currentIndex: number;
@@ -20,16 +24,16 @@ interface StudySession {
 
 interface StudyState {
   // Session state
-  session: StudySession | null;
+  session: ActiveSession | null;
   isLoading: boolean;
-  
+
   // Daily progress
   cardsStudiedToday: number;
   dailyGoal: number;
-  
+
   // Actions
   startSession: (queue: StudyCard[], mode: SessionMode) => void;
-  endSession: () => StudySession | null;
+  endSession: () => ActiveSession | null;
   nextCard: () => void;
   previousCard: () => void;
   recordResult: (result: ReviewResult) => void;

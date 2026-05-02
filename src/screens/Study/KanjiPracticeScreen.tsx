@@ -18,7 +18,7 @@ export function KanjiPracticeScreen({ navigation }: StudyScreenProps<'KanjiPract
   const [selectedLevel, setSelectedLevel] = useState<JlptLevel>(user?.currentLevel ?? 'N5');
   const [flipped, setFlipped] = useState<string | null>(null);
 
-  const { data: kanjiList, isLoading } = useQuery({
+  const { data: kanjiList, isLoading, isError, error } = useQuery({
     queryKey: ['kanji', selectedLevel],
     queryFn: () => getKanjiByLevel(selectedLevel),
     staleTime: 10 * 60 * 1000,
@@ -60,6 +60,14 @@ export function KanjiPracticeScreen({ navigation }: StudyScreenProps<'KanjiPract
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Caption>Loading kanji...</Caption>
+        </View>
+      ) : isError ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyEmoji}>⚠️</Text>
+          <Heading3 align="center">Failed to load kanji</Heading3>
+          <Body color="textSecondary" align="center">
+            {(error as Error)?.message ?? 'Unknown error'}
+          </Body>
         </View>
       ) : !kanjiList || kanjiList.length === 0 ? (
         <View style={styles.center}>

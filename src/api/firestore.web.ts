@@ -186,9 +186,12 @@ export async function getGrammarById(id: string): Promise<GrammarPoint | null> {
 // ========================
 
 export async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
-  const q = query(kanjiRef, where('jlptLevel', '==', level), orderBy('frequencyRank', 'asc'), limit(50));
+  // orderBy omitted to avoid requiring a composite index before deployment;
+  // sort by frequencyRank client-side instead.
+  const q = query(kanjiRef, where('jlptLevel', '==', level), limit(50));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as KanjiCard[];
+  const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as KanjiCard[];
+  return docs.sort((a, b) => a.frequencyRank - b.frequencyRank);
 }
 
 export async function getKanjiProgress(userId: string): Promise<Map<string, KanjiProgress>> {
@@ -267,17 +270,17 @@ export async function updateProgress(
 ): Promise<void> {
   const progressRef = doc(db, 'users', userId, 'progress', vocabId);
   
-  const data = {
+  const data: Record<string, unknown> = {
     ...progress,
     vocabId,
     lastReviewed: serverTimestamp(),
   };
-  
-  // Convert Date to Timestamp if present
+
+  // Convert Date to Firestore Timestamp for storage
   if (progress.nextReview instanceof Date) {
     data.nextReview = Timestamp.fromDate(progress.nextReview);
   }
-  
+
   await setDoc(progressRef, data, { merge: true });
 }
 
@@ -287,16 +290,17 @@ export async function updateProgress(
 
 export async function recordStudySession(
   userId: string,
-  session: Omit<StudySession, 'id' | 'startedAt' | 'completedAt'>
+  session: Omit<StudySession, 'id' | 'startedAt' | 'endedAt' | 'date'> & { startedAt: Date }
 ): Promise<string> {
+  const { startedAt, ...sessionFields } = session;
   const sessionsRef = collection(db, 'users', userId, 'studySessions');
   const sessionDoc = doc(sessionsRef);
   const date = new Date().toISOString().split('T')[0];
 
   await setDoc(sessionDoc, {
-    ...session,
+    ...sessionFields,
     date,
-    startedAt: serverTimestamp(),
+    startedAt: Timestamp.fromDate(startedAt),
     completedAt: serverTimestamp(),
   });
 
@@ -496,18 +500,21 @@ export async function saveSessionResults(
     xpEarned,
     goalCompleted: totalCards >= dailyGoal,
     durationMinutes,
-  } as Parameters<typeof recordStudySession>[1]);
+    startedAt,
+  });
 
   return { xpEarned };
 }
 
 /**
- * Get user's vocabulary progress map
+ * Get user's vocabulary progress map.
+ * @param limitCount - Maximum number of progress records to fetch (default 500).
  */
-export async function getUserProgress(userId: string): Promise<Map<string, VocabProgress>> {
+export async function getUserProgress(userId: string, limitCount = 500): Promise<Map<string, VocabProgress>> {
   const progressRef = collection(db, 'users', userId, 'progress');
-  const snapshot = await getDocs(progressRef);
-  
+  const q = query(progressRef, limit(limitCount));
+  const snapshot = await getDocs(q);
+
   const progressMap = new Map<string, VocabProgress>();
   snapshot.docs.forEach(docSnap => {
     const data = docSnap.data();
@@ -515,10 +522,10 @@ export async function getUserProgress(userId: string): Promise<Map<string, Vocab
       vocabId: docSnap.id,
       ...data,
       nextReview: data.nextReview?.toDate?.() || new Date(),
-      lastReview: data.lastReview?.toDate?.() || null,
+      lastReviewed: data.lastReviewed?.toDate?.() || null,
     } as VocabProgress);
   });
-  
+
   return progressMap;
 }
 

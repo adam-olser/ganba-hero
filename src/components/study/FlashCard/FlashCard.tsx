@@ -357,5 +357,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FlashCard;
+export default React.memo(FlashCard);
 

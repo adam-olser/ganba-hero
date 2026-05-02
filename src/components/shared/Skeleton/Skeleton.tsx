@@ -284,5 +284,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Skeleton;
+export default React.memo(Skeleton);
 

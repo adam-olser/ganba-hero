@@ -76,6 +76,18 @@ export interface StudyCard {
   isNew: boolean;
 }
 
+export interface KanjiReviewResult {
+  kanjiId: string;
+  correct: boolean;
+  srsUpdate: {
+    interval: number;
+    easeFactor: number;
+    repetitions: number;
+    nextReview: Date;
+    status: 'new' | 'learning' | 'review' | 'mastered';
+  };
+}
+
 // Default progress for new cards
 export function createNewProgress(vocabId: string, nextReviewDate: Date): Omit<VocabProgress, 'lastReviewed' | 'nextReview'> {
   return {

@@ -48,6 +48,7 @@ export {
   // Stats operations
   recordStudySession,
   saveSessionResults,
+  saveKanjiSessionResults,
   getTodayStats,
   getDailyStats,
   getWeeklyStats,

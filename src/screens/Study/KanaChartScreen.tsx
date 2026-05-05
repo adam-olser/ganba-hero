@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, Heading2, Heading3, Caption } from '@/components/shared';
@@ -7,6 +7,38 @@ import { speakJapanese } from '@/services/tts';
 import type { StudyScreenProps } from '@/types';
 
 type KanaType = 'hiragana' | 'katakana';
+type ScreenView = 'chart' | 'quiz';
+type QuizScope = 'basic' | 'dakuten' | 'combos' | 'all';
+
+interface KanaItem { char: string; romaji: string }
+interface QuizState {
+  queue: KanaItem[];
+  index: number;
+  options: string[]; // 4 romaji choices
+  selected: string | null;
+  correct: number;
+  incorrect: number;
+  done: boolean;
+  // per-char accuracy for weak-character highlight
+  accuracy: Map<string, { correct: number; total: number }>;
+}
+
+function flattenKanaRows(rows: KanaRow[]): KanaItem[] {
+  return rows.flatMap(r => r.kana).filter(k => k.char !== '');
+}
+
+function buildQuizQueue(items: KanaItem[]): KanaItem[] {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+function buildOptions(correct: KanaItem, pool: KanaItem[]): string[] {
+  const distractors = pool
+    .filter(k => k.romaji !== correct.romaji)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+    .map(k => k.romaji);
+  return [correct.romaji, ...distractors].sort(() => Math.random() - 0.5);
+}
 
 interface KanaRow {
   consonant: string;
@@ -93,13 +125,90 @@ const KATAKANA_COMBOS: ComboRow[] = [
 
 const VOWELS = ['a', 'i', 'u', 'e', 'o'];
 
+const SCOPE_LABELS: Record<QuizScope, string> = {
+  basic: 'Basic',
+  dakuten: 'Dakuten',
+  combos: 'Combos',
+  all: 'All',
+};
+
 export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
   const [activeType, setActiveType] = useState<KanaType>('hiragana');
   const [showRomaji, setShowRomaji] = useState(true);
+  const [screenView, setScreenView] = useState<ScreenView>('chart');
+  const [quiz, setQuiz] = useState<QuizState>({
+    queue: [], index: 0, options: [], selected: null,
+    correct: 0, incorrect: 0, done: false, accuracy: new Map(),
+  });
 
   const basicRows = activeType === 'hiragana' ? HIRAGANA_BASIC : KATAKANA_BASIC;
   const dakutenRows = activeType === 'hiragana' ? HIRAGANA_DAKUTEN : KATAKANA_DAKUTEN;
   const comboRows = activeType === 'hiragana' ? HIRAGANA_COMBOS : KATAKANA_COMBOS;
+
+  const allKanaPool = useMemo<KanaItem[]>(() => [
+    ...flattenKanaRows(basicRows),
+    ...flattenKanaRows(dakutenRows),
+    ...comboRows.flatMap(r => r.combos),
+  ], [basicRows, dakutenRows, comboRows]);
+
+  const startQuiz = useCallback((scope: QuizScope) => {
+    let items: KanaItem[];
+    if (scope === 'basic') items = flattenKanaRows(basicRows);
+    else if (scope === 'dakuten') items = flattenKanaRows(dakutenRows);
+    else if (scope === 'combos') items = comboRows.flatMap(r => r.combos);
+    else items = allKanaPool;
+
+    const queue = buildQuizQueue(items);
+    const first = queue[0];
+    const pool = items.filter(k => k.romaji !== first.romaji);
+    setQuiz({
+      queue,
+      index: 0,
+      options: buildOptions(first, pool),
+      selected: null,
+      correct: 0,
+      incorrect: 0,
+      done: false,
+      accuracy: new Map(),
+    });
+    setScreenView('quiz');
+  }, [basicRows, dakutenRows, comboRows, allKanaPool]);
+
+  // Auto-advance after answer shown
+  useEffect(() => {
+    if (quiz.selected === null || screenView !== 'quiz') return;
+    const timer = setTimeout(() => {
+      const isLast = quiz.index >= quiz.queue.length - 1;
+      if (isLast) {
+        setQuiz(q => ({ ...q, done: true, selected: null }));
+        return;
+      }
+      const nextIndex = quiz.index + 1;
+      const next = quiz.queue[nextIndex];
+      const pool = quiz.queue.filter(k => k.romaji !== next.romaji);
+      setQuiz(q => ({ ...q, index: nextIndex, options: buildOptions(next, pool), selected: null }));
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [quiz.selected, quiz.index, quiz.queue, screenView]);
+
+  const selectOption = useCallback((opt: string) => {
+    if (quiz.selected !== null) return;
+    const current = quiz.queue[quiz.index];
+    const wasCorrect = opt === current.romaji;
+    setQuiz(q => {
+      const acc = new Map(q.accuracy);
+      const prev = acc.get(current.char) ?? { correct: 0, total: 0 };
+      acc.set(current.char, { correct: prev.correct + (wasCorrect ? 1 : 0), total: prev.total + 1 });
+      return {
+        ...q,
+        selected: opt,
+        correct: q.correct + (wasCorrect ? 1 : 0),
+        incorrect: q.incorrect + (wasCorrect ? 0 : 1),
+        accuracy: acc,
+      };
+    });
+    if (wasCorrect) speakJapanese(current.char);
+  }, [quiz.selected, quiz.index, quiz.queue]);
 
   const renderKanaRow = (row: KanaRow, rowIndex: number) => (
     <View key={rowIndex} style={styles.kanaRow}>
@@ -142,25 +251,117 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
     </View>
   );
 
+  // ─── Quiz render ────────────────────────────────────────────────────────────
+
+  const renderQuiz = () => {
+    if (quiz.done) {
+      const total = quiz.correct + quiz.incorrect;
+      const pct = total > 0 ? Math.round((quiz.correct / total) * 100) : 0;
+      const weakChars = [...quiz.accuracy.entries()]
+        .filter(([, v]) => v.total > 0 && v.correct / v.total < 0.8)
+        .map(([char]) => char);
+      return (
+        <View style={styles.quizDone}>
+          <Text style={styles.quizDoneEmoji}>🎉</Text>
+          <Heading3 align="center">Quiz complete!</Heading3>
+          <Caption color="textSecondary" align="center">
+            {quiz.correct} / {total} correct ({pct}%)
+          </Caption>
+          {weakChars.length > 0 && (
+            <View style={styles.weakBox}>
+              <Caption color="textMuted">Keep practising:</Caption>
+              <View style={styles.weakChars}>
+                {weakChars.map(c => (
+                  <View key={c} style={styles.weakChip}>
+                    <Text style={styles.weakChar}>{c}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+          <View style={styles.quizDoneActions}>
+            {(Object.keys(SCOPE_LABELS) as QuizScope[]).map(scope => (
+              <Pressable key={scope} style={styles.scopeBtn} onPress={() => startQuiz(scope)}>
+                <Caption color="primary">{SCOPE_LABELS[scope]}</Caption>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      );
+    }
+
+    const current = quiz.queue[quiz.index];
+    if (!current) return null;
+    const pct = (quiz.index / quiz.queue.length) * 100;
+
+    return (
+      <View style={styles.quizContainer}>
+        <View style={styles.quizProgress}>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${pct}%` }]} />
+          </View>
+          <Caption color="textMuted">{quiz.index + 1} / {quiz.queue.length}</Caption>
+        </View>
+
+        <View style={styles.quizCardArea}>
+          <Text style={styles.quizCharacter}>{current.char}</Text>
+          <View style={styles.quizOptions}>
+            {quiz.options.map(opt => {
+              const isSelected = quiz.selected === opt;
+              const isCorrect = opt === current.romaji;
+              const showGreen = isCorrect && (isSelected || quiz.selected !== null);
+              const showRed = isSelected && !isCorrect;
+              return (
+                <Pressable
+                  key={opt}
+                  style={[styles.quizOption, showGreen && styles.quizOptionCorrect, showRed && styles.quizOptionWrong]}
+                  onPress={() => selectOption(opt)}
+                  disabled={quiz.selected !== null}
+                >
+                  <Text style={styles.quizOptionText}>{opt}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.quizScore}>
+          <View style={[styles.scoreBadge, styles.scoreBadgeCorrect]}>
+            <Caption color="success">✓ {quiz.correct}</Caption>
+          </View>
+          <View style={[styles.scoreBadge, styles.scoreBadgeIncorrect]}>
+            <Caption color="error">✗ {quiz.incorrect}</Caption>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // ─── Root ────────────────────────────────────────────────────────────────
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text color="primary">← Back</Text>
+          <TouchableOpacity onPress={screenView === 'quiz' ? () => setScreenView('chart') : () => navigation.goBack()}>
+            <Text color="primary">← {screenView === 'quiz' ? 'Chart' : 'Back'}</Text>
           </TouchableOpacity>
-          <Heading2>Kana Chart</Heading2>
-          <TouchableOpacity onPress={() => setShowRomaji(!showRomaji)}>
-            <Caption color={showRomaji ? 'primary' : 'textMuted'}>
-              {showRomaji ? 'Hide' : 'Show'} Romaji
-            </Caption>
-          </TouchableOpacity>
+          <Heading2>Kana {screenView === 'quiz' ? 'Quiz' : 'Chart'}</Heading2>
+          {screenView === 'chart' ? (
+            <TouchableOpacity onPress={() => setShowRomaji(!showRomaji)}>
+              <Caption color={showRomaji ? 'primary' : 'textMuted'}>
+                {showRomaji ? 'Hide' : 'Show'} Romaji
+              </Caption>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 48 }} />
+          )}
         </View>
 
         <View style={styles.toggleContainer}>
           <Pressable
             style={[styles.toggleButton, activeType === 'hiragana' && styles.toggleActive]}
-            onPress={() => setActiveType('hiragana')}
+            onPress={() => { setActiveType('hiragana'); setScreenView('chart'); }}
           >
             <Text variant="body" color={activeType === 'hiragana' ? 'textPrimary' : 'textMuted'}
               style={activeType === 'hiragana' ? styles.toggleTextActive : undefined}>
@@ -169,7 +370,7 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
           </Pressable>
           <Pressable
             style={[styles.toggleButton, activeType === 'katakana' && styles.toggleActive]}
-            onPress={() => setActiveType('katakana')}
+            onPress={() => { setActiveType('katakana'); setScreenView('chart'); }}
           >
             <Text variant="body" color={activeType === 'katakana' ? 'textPrimary' : 'textMuted'}
               style={activeType === 'katakana' ? styles.toggleTextActive : undefined}>
@@ -177,51 +378,64 @@ export function KanaChartScreen({ navigation }: StudyScreenProps<'KanaChart'>) {
             </Text>
           </Pressable>
         </View>
+
+        {screenView === 'chart' && (
+          <View style={styles.quizScopeRow}>
+            <Caption color="textMuted">Quiz: </Caption>
+            {(Object.keys(SCOPE_LABELS) as QuizScope[]).map(scope => (
+              <Pressable key={scope} style={styles.scopeBtn} onPress={() => startQuiz(scope)}>
+                <Caption color="primary">{SCOPE_LABELS[scope]}</Caption>
+              </Pressable>
+            ))}
+          </View>
+        )}
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Basic */}
-        <Heading3 style={styles.sectionTitle}>Basic</Heading3>
-        <View style={styles.vowelRow}>
-          <View style={styles.consonantCell} />
-          {VOWELS.map(v => (
-            <View key={v} style={styles.vowelCell}>
-              <Caption color="primary">{v}</Caption>
-            </View>
-          ))}
-        </View>
-        {basicRows.map(renderKanaRow)}
+      {screenView === 'quiz' ? renderQuiz() : (
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Basic */}
+          <Heading3 style={styles.sectionTitle}>Basic</Heading3>
+          <View style={styles.vowelRow}>
+            <View style={styles.consonantCell} />
+            {VOWELS.map(v => (
+              <View key={v} style={styles.vowelCell}>
+                <Caption color="primary">{v}</Caption>
+              </View>
+            ))}
+          </View>
+          {basicRows.map(renderKanaRow)}
 
-        {/* Dakuten / Handakuten */}
-        <Heading3 style={[styles.sectionTitle, styles.sectionGap]}>Dakuten ゛/ Handakuten ゜</Heading3>
-        <View style={styles.vowelRow}>
-          <View style={styles.consonantCell} />
-          {VOWELS.map(v => (
-            <View key={v} style={styles.vowelCell}>
-              <Caption color="primary">{v}</Caption>
-            </View>
-          ))}
-        </View>
-        {dakutenRows.map(renderKanaRow)}
+          {/* Dakuten / Handakuten */}
+          <Heading3 style={[styles.sectionTitle, styles.sectionGap]}>Dakuten ゛/ Handakuten ゜</Heading3>
+          <View style={styles.vowelRow}>
+            <View style={styles.consonantCell} />
+            {VOWELS.map(v => (
+              <View key={v} style={styles.vowelCell}>
+                <Caption color="primary">{v}</Caption>
+              </View>
+            ))}
+          </View>
+          {dakutenRows.map(renderKanaRow)}
 
-        {/* Combo kana */}
-        <Heading3 style={[styles.sectionTitle, styles.sectionGap]}>Combinations</Heading3>
-        <View style={styles.comboHeaderRow}>
-          <View style={styles.comboBaseCell} />
-          {['ya', 'yu', 'yo'].map(v => (
-            <View key={v} style={styles.comboCell}>
-              <Caption color="primary">{v}</Caption>
-            </View>
-          ))}
-        </View>
-        {comboRows.map(renderComboRow)}
+          {/* Combo kana */}
+          <Heading3 style={[styles.sectionTitle, styles.sectionGap]}>Combinations</Heading3>
+          <View style={styles.comboHeaderRow}>
+            <View style={styles.comboBaseCell} />
+            {['ya', 'yu', 'yo'].map(v => (
+              <View key={v} style={styles.comboCell}>
+                <Caption color="primary">{v}</Caption>
+              </View>
+            ))}
+          </View>
+          {comboRows.map(renderComboRow)}
 
-        <View style={styles.footer}>
-          <Caption color="textMuted" style={styles.footerText}>
-            Tap any character to hear its pronunciation
-          </Caption>
-        </View>
-      </ScrollView>
+          <View style={styles.footer}>
+            <Caption color="textMuted" style={styles.footerText}>
+              Tap any character to hear its pronunciation
+            </Caption>
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -304,6 +518,53 @@ const styles = StyleSheet.create({
   comboChar: { fontSize: 22, lineHeight: 26 },
   footer: { marginTop: spacing.xl, alignItems: 'center' },
   footerText: { textAlign: 'center' },
+  // Quiz scope buttons in chart header
+  quizScopeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
+  scopeBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  // Quiz screen
+  quizContainer: { flex: 1, padding: layout.screenPaddingHorizontal },
+  quizProgress: { paddingVertical: spacing.md, gap: spacing.xs },
+  progressTrack: { height: 6, backgroundColor: colors.surfaceHighlight, borderRadius: borderRadius.full, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: borderRadius.full },
+  quizCardArea: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.xl },
+  quizCharacter: { fontSize: 96, lineHeight: 108, color: colors.textPrimary },
+  quizOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, width: '100%' },
+  quizOption: {
+    width: '47%',
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quizOptionCorrect: { backgroundColor: colors.successMuted, borderColor: colors.success },
+  quizOptionWrong: { backgroundColor: colors.errorMuted, borderColor: colors.error },
+  quizOptionText: { fontSize: 16, color: colors.textPrimary },
+  quizScore: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md, paddingVertical: spacing.md },
+  scoreBadge: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.md, backgroundColor: colors.surface },
+  scoreBadgeCorrect: { backgroundColor: colors.successMuted },
+  scoreBadgeIncorrect: { backgroundColor: colors.errorMuted },
+  // Done screen
+  quizDone: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md, padding: spacing.xl },
+  quizDoneEmoji: { fontSize: 64 },
+  quizDoneActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.md },
+  weakBox: { gap: spacing.sm, alignItems: 'center' },
+  weakChars: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
+  weakChip: {
+    width: 44, height: 44,
+    backgroundColor: colors.errorMuted,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weakChar: { fontSize: 24, lineHeight: 28, color: colors.textPrimary },
 });
 
 export default KanaChartScreen;

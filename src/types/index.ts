@@ -27,6 +27,7 @@ export type {
   DailyStats,
   ReviewResult,
   StudyCard,
+  KanjiReviewResult,
 } from './progress';
 export { createNewProgress } from './progress';
 

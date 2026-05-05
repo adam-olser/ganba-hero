@@ -35,6 +35,7 @@ export {
   getKanjiProgress,
   getDueKanjiCards,
   updateKanjiProgress,
+  saveKanjiSessionResults,
   
   // Progress operations
   getUserProgress,

@@ -5,7 +5,7 @@
  */
 
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel, ReviewResult, StudyCard, KanjiCard, KanjiProgress } from '@/types';
+import type { User, Vocabulary, GrammarPoint, VocabProgress, JlptLevel, ReviewResult, StudyCard, KanjiCard, KanjiProgress, KanjiReviewResult } from '@/types';
 import { calculateNextReview, DEFAULT_SRS_VALUES } from '@/services/srs';
 import { calculateXP } from '@/services/xpCalculator';
 
@@ -557,6 +557,78 @@ export async function updateKanjiProgress(
     .collection('kanjiProgress')
     .doc(kanjiId)
     .set(payload, { merge: true });
+}
+
+/**
+ * Persist a completed kanji study session: SRS batch updates + stats + XP + streak.
+ * Returns the XP earned and updated streak values.
+ */
+export async function saveKanjiSessionResults(
+  uid: string,
+  sessionData: {
+    results: KanjiReviewResult[];
+    startedAt: Date;
+    currentStreak: number;
+    dailyGoal: number;
+  }
+): Promise<{ xpEarned: number; currentStreak: number; longestStreak: number }> {
+  const { results, startedAt, currentStreak, dailyGoal } = sessionData;
+  const durationMinutes = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
+  const totalCards = results.length;
+  const correctAnswers = results.filter(r => r.correct).length;
+
+  const xpEarned = calculateXP({
+    cardsReviewed: totalCards,
+    correctAnswers,
+    newCardsLearned: 0,
+    perfectSession: correctAnswers === totalCards,
+    streakBonus: currentStreak >= 7,
+  });
+
+  const now = firestore.Timestamp.now();
+  const batch = db.batch();
+
+  for (const result of results) {
+    const ref = db
+      .collection('users')
+      .doc(uid)
+      .collection('kanjiProgress')
+      .doc(result.kanjiId);
+
+    batch.set(
+      ref,
+      {
+        kanjiId: result.kanjiId,
+        interval: result.srsUpdate.interval,
+        easeFactor: result.srsUpdate.easeFactor,
+        repetitions: result.srsUpdate.repetitions,
+        nextReview: firestore.Timestamp.fromDate(result.srsUpdate.nextReview),
+        status: result.srsUpdate.status,
+        lastSeen: now,
+        seen: true,
+        correct: firestore.FieldValue.increment(result.correct ? 1 : 0),
+        incorrect: firestore.FieldValue.increment(result.correct ? 0 : 1),
+      },
+      { merge: true }
+    );
+  }
+
+  await batch.commit();
+
+  await recordStudySession(uid, {
+    cardsReviewed: totalCards,
+    newCardsLearned: 0,
+    correctAnswers,
+    incorrectAnswers: totalCards - correctAnswers,
+    xpEarned,
+    goalCompleted: totalCards >= dailyGoal,
+    durationMinutes,
+    startedAt,
+  });
+
+  const { currentStreak: updatedStreak, longestStreak } = await updateStreak(uid);
+
+  return { xpEarned, currentStreak: updatedStreak, longestStreak };
 }
 
 /**

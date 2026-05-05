@@ -35,6 +35,7 @@ import type {
   StudyCard,
   KanjiCard,
   KanjiProgress,
+  KanjiReviewResult,
   JlptLevel,
 } from '@/types';
 
@@ -532,6 +533,67 @@ export async function saveSessionResults(
   });
 
   return { xpEarned };
+}
+
+/**
+ * Persist a completed kanji study session: SRS updates + stats + streak in one call.
+ */
+export async function saveKanjiSessionResults(
+  uid: string,
+  sessionData: {
+    results: KanjiReviewResult[];
+    startedAt: Date;
+    currentStreak: number;
+    dailyGoal: number;
+  }
+): Promise<{ xpEarned: number; currentStreak: number; longestStreak: number }> {
+  const { results, startedAt, currentStreak, dailyGoal } = sessionData;
+  const durationMinutes = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 60000));
+  const totalCards = results.length;
+  const correctAnswers = results.filter(r => r.correct).length;
+
+  const xpEarned = calculateXP({
+    cardsReviewed: totalCards,
+    correctAnswers,
+    newCardsLearned: 0,
+    perfectSession: correctAnswers === totalCards,
+    streakBonus: currentStreak >= 7,
+  });
+
+  const now = Timestamp.now();
+  const batch = writeBatch(db);
+
+  for (const result of results) {
+    const progressRef = doc(db, 'users', uid, 'kanjiProgress', result.kanjiId);
+    batch.set(progressRef, {
+      kanjiId: result.kanjiId,
+      interval: result.srsUpdate.interval,
+      easeFactor: result.srsUpdate.easeFactor,
+      repetitions: result.srsUpdate.repetitions,
+      nextReview: Timestamp.fromDate(result.srsUpdate.nextReview),
+      lastSeen: now,
+      status: result.srsUpdate.status,
+      correctCount: increment(result.correct ? 1 : 0),
+      incorrectCount: increment(result.correct ? 0 : 1),
+    }, { merge: true });
+  }
+
+  await batch.commit();
+
+  await recordStudySession(uid, {
+    cardsReviewed: totalCards,
+    newCardsLearned: 0,
+    correctAnswers,
+    incorrectAnswers: totalCards - correctAnswers,
+    xpEarned,
+    goalCompleted: totalCards >= dailyGoal,
+    durationMinutes,
+    startedAt,
+  });
+
+  const { currentStreak: newCurrentStreak, longestStreak } = await updateStreak(uid);
+
+  return { xpEarned, currentStreak: newCurrentStreak, longestStreak };
 }
 
 /**

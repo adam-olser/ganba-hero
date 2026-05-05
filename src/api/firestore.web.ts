@@ -194,21 +194,45 @@ export async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
   return docs.sort((a, b) => a.frequencyRank - b.frequencyRank);
 }
 
+function toDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (value && typeof (value as { toDate?: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  return new Date();
+}
+
+function deserializeKanjiProgress(id: string, data: Record<string, unknown>): KanjiProgress {
+  return {
+    kanjiId: id,
+    seen: (data.seen as boolean) ?? false,
+    correct: (data.correct as number) ?? 0,
+    incorrect: (data.incorrect as number) ?? 0,
+    lastSeen: data.lastSeen ? toDate(data.lastSeen) : null,
+    interval: (data.interval as number) ?? 0,
+    easeFactor: (data.easeFactor as number) ?? 2.5,
+    repetitions: (data.repetitions as number) ?? 0,
+    nextReview: data.nextReview ? toDate(data.nextReview) : new Date(),
+    status: (data.status as KanjiProgress['status']) ?? 'new',
+  };
+}
+
 export async function getKanjiProgress(userId: string): Promise<Map<string, KanjiProgress>> {
   const progressRef = collection(db, 'users', userId, 'kanjiProgress');
   const snapshot = await getDocs(progressRef);
   const map = new Map<string, KanjiProgress>();
   snapshot.docs.forEach(d => {
-    const data = d.data();
-    map.set(d.id, {
-      kanjiId: d.id,
-      seen: data.seen ?? false,
-      correct: data.correct ?? 0,
-      incorrect: data.incorrect ?? 0,
-      lastSeen: data.lastSeen?.toDate?.() ?? null,
-    });
+    map.set(d.id, deserializeKanjiProgress(d.id, d.data()));
   });
   return map;
+}
+
+export async function getDueKanjiCards(userId: string): Promise<KanjiProgress[]> {
+  const progressRef = collection(db, 'users', userId, 'kanjiProgress');
+  const now = Timestamp.now();
+  const q = query(progressRef, where('nextReview', '<=', now), orderBy('nextReview', 'asc'), limit(50));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => deserializeKanjiProgress(d.id, d.data()));
 }
 
 export async function updateKanjiProgress(
@@ -217,7 +241,11 @@ export async function updateKanjiProgress(
   data: Partial<Omit<KanjiProgress, 'kanjiId'>>
 ): Promise<void> {
   const ref = doc(db, 'users', userId, 'kanjiProgress', kanjiId);
-  await setDoc(ref, { kanjiId, ...data, lastSeen: serverTimestamp() }, { merge: true });
+  const payload: Record<string, unknown> = { kanjiId, ...data, lastSeen: serverTimestamp() };
+  if (data.nextReview instanceof Date) {
+    payload.nextReview = Timestamp.fromDate(data.nextReview);
+  }
+  await setDoc(ref, payload, { merge: true });
 }
 
 // ========================
@@ -231,36 +259,36 @@ export async function getProgress(userId: string): Promise<VocabProgress[]> {
   return snapshot.docs.map(doc => {
     const data = doc.data();
     return {
-      id: doc.id,
       ...data,
-      nextReview: data.nextReview?.toDate?.() || new Date(),
-      lastReviewed: data.lastReviewed?.toDate?.() || new Date(),
-    };
-  }) as VocabProgress[];
+      vocabId: doc.id,
+      nextReview: toDate(data.nextReview),
+      lastReviewed: data.lastReviewed ? toDate(data.lastReviewed) : null,
+    } as VocabProgress;
+  });
 }
 
 export async function getDueCards(userId: string): Promise<VocabProgress[]> {
   const progressRef = collection(db, 'users', userId, 'progress');
   const now = Timestamp.now();
-  
+
   const q = query(
     progressRef,
     where('nextReview', '<=', now),
     orderBy('nextReview', 'asc'),
     limit(100)
   );
-  
+
   const snapshot = await getDocs(q);
-  
+
   return snapshot.docs.map(doc => {
     const data = doc.data();
     return {
-      id: doc.id,
       ...data,
-      nextReview: data.nextReview?.toDate?.() || new Date(),
-      lastReviewed: data.lastReviewed?.toDate?.() || new Date(),
-    };
-  }) as VocabProgress[];
+      vocabId: doc.id,
+      nextReview: toDate(data.nextReview),
+      lastReviewed: data.lastReviewed ? toDate(data.lastReviewed) : null,
+    } as VocabProgress;
+  });
 }
 
 export async function updateProgress(
@@ -521,8 +549,8 @@ export async function getUserProgress(userId: string, limitCount = 500): Promise
     progressMap.set(docSnap.id, {
       vocabId: docSnap.id,
       ...data,
-      nextReview: data.nextReview?.toDate?.() || new Date(),
-      lastReviewed: data.lastReviewed?.toDate?.() || null,
+      nextReview: toDate(data.nextReview),
+      lastReviewed: data.lastReviewed ? toDate(data.lastReviewed) : null,
     } as VocabProgress);
   });
 

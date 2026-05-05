@@ -14,7 +14,7 @@ import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore } from '@/store';
 import { getLevelProgress, getLevelTitle } from '@/services/xpCalculator';
-import { getUserProgress, getWeeklyStats } from '@/api';
+import { getUserProgress, getWeeklyStats, getKanjiProgress } from '@/api';
 import type { MainTabProps } from '@/types';
 
 // Generate last 7 days for the week view
@@ -125,6 +125,14 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
+  // Fetch kanji progress
+  const { data: kanjiProgressMap, refetch: refetchKanji } = useQuery({
+    queryKey: ['kanjiProgress', user?.uid],
+    queryFn: () => user?.uid ? getKanjiProgress(user.uid) : Promise.resolve(new Map()),
+    enabled: !!user?.uid,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Fetch weekly stats
   const { data: weeklyStats, refetch: refetchWeekly, isLoading: isLoadingWeekly } = useQuery({
     queryKey: ['weeklyStats', user?.uid],
@@ -189,8 +197,24 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
     return set;
   }, [weeklyStats]);
   
+  const kanjiStats = useMemo(() => {
+    if (!kanjiProgressMap) return { seen: 0, mastered: 0, accuracy: 0 };
+    let seen = 0, mastered = 0, totalCorrect = 0, totalAttempts = 0;
+    kanjiProgressMap.forEach(p => {
+      if (p.seen) seen++;
+      if (p.status === 'mastered') mastered++;
+      totalCorrect += p.correct;
+      totalAttempts += p.correct + p.incorrect;
+    });
+    return {
+      seen,
+      mastered,
+      accuracy: totalAttempts > 0 ? Math.round((totalCorrect / totalAttempts) * 100) : 0,
+    };
+  }, [kanjiProgressMap]);
+
   const handleRefresh = async () => {
-    await Promise.all([refetchProgress(), refetchWeekly()]);
+    await Promise.all([refetchProgress(), refetchWeekly(), refetchKanji()]);
   };
   
   return (
@@ -338,6 +362,28 @@ export function ProgressScreen({ navigation }: MainTabProps<'ProgressTab'>) {
           </Card>
         </View>
         
+        {/* Kanji Stats */}
+        <View style={styles.section}>
+          <Heading3 style={styles.sectionTitle}>Kanji</Heading3>
+          <View style={styles.statsGrid}>
+            <Card padding="medium" style={styles.statCard}>
+              <Text style={styles.kanjiStatChar}>漢</Text>
+              <Text variant="h3">{kanjiStats.seen}</Text>
+              <Caption>Seen</Caption>
+            </Card>
+            <Card padding="medium" style={styles.statCard}>
+              <Text style={styles.kanjiStatChar}>⭐</Text>
+              <Text variant="h3">{kanjiStats.mastered}</Text>
+              <Caption>Mastered</Caption>
+            </Card>
+            <Card padding="medium" style={styles.statCard}>
+              <Text style={styles.kanjiStatChar}>🎯</Text>
+              <Text variant="h3">{kanjiStats.accuracy}%</Text>
+              <Caption>Accuracy</Caption>
+            </Card>
+          </View>
+        </View>
+
         {/* JLPT Progress */}
         <View style={styles.section}>
           <Heading3 style={styles.sectionTitle}>JLPT Progress</Heading3>
@@ -478,6 +524,10 @@ const styles = StyleSheet.create({
     width: '47%',
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  kanjiStatChar: {
+    fontSize: 28,
+    lineHeight: 34,
   },
   section: {
     marginBottom: spacing.xl,

@@ -493,6 +493,29 @@ export async function getKanjiByLevel(level: JlptLevel): Promise<KanjiCard[]> {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as KanjiCard));
 }
 
+function toDateNative(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (value && typeof (value as { toDate?: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  return new Date();
+}
+
+function deserializeKanjiProgressNative(id: string, data: Record<string, unknown>): KanjiProgress {
+  return {
+    kanjiId: id,
+    seen: (data.seen as boolean) ?? false,
+    correct: (data.correct as number) ?? 0,
+    incorrect: (data.incorrect as number) ?? 0,
+    lastSeen: data.lastSeen ? toDateNative(data.lastSeen) : null,
+    interval: (data.interval as number) ?? 0,
+    easeFactor: (data.easeFactor as number) ?? 2.5,
+    repetitions: (data.repetitions as number) ?? 0,
+    nextReview: data.nextReview ? toDateNative(data.nextReview) : new Date(),
+    status: (data.status as KanjiProgress['status']) ?? 'new',
+  };
+}
+
 export async function getKanjiProgress(userId: string): Promise<Map<string, KanjiProgress>> {
   const snapshot = await db
     .collection('users')
@@ -501,16 +524,22 @@ export async function getKanjiProgress(userId: string): Promise<Map<string, Kanj
     .get();
   const map = new Map<string, KanjiProgress>();
   snapshot.docs.forEach(doc => {
-    const data = doc.data();
-    map.set(doc.id, {
-      kanjiId: doc.id,
-      seen: data.seen ?? false,
-      correct: data.correct ?? 0,
-      incorrect: data.incorrect ?? 0,
-      lastSeen: data.lastSeen?.toDate?.() ?? null,
-    });
+    map.set(doc.id, deserializeKanjiProgressNative(doc.id, doc.data()));
   });
   return map;
+}
+
+export async function getDueKanjiCards(userId: string): Promise<KanjiProgress[]> {
+  const now = firestore.Timestamp.now();
+  const snapshot = await db
+    .collection('users')
+    .doc(userId)
+    .collection('kanjiProgress')
+    .where('nextReview', '<=', now)
+    .orderBy('nextReview', 'asc')
+    .limit(50)
+    .get();
+  return snapshot.docs.map(doc => deserializeKanjiProgressNative(doc.id, doc.data()));
 }
 
 export async function updateKanjiProgress(
@@ -518,12 +547,16 @@ export async function updateKanjiProgress(
   kanjiId: string,
   data: Partial<Omit<KanjiProgress, 'kanjiId'>>
 ): Promise<void> {
+  const payload: Record<string, unknown> = { kanjiId, ...data, lastSeen: firestore.FieldValue.serverTimestamp() };
+  if (data.nextReview instanceof Date) {
+    payload.nextReview = firestore.Timestamp.fromDate(data.nextReview);
+  }
   await db
     .collection('users')
     .doc(userId)
     .collection('kanjiProgress')
     .doc(kanjiId)
-    .set({ kanjiId, ...data, lastSeen: firestore.FieldValue.serverTimestamp() }, { merge: true });
+    .set(payload, { merge: true });
 }
 
 /**

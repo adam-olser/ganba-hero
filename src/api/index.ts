@@ -33,6 +33,7 @@ export {
   // Kanji operations
   getKanjiByLevel,
   getKanjiProgress,
+  getDueKanjiCards,
   updateKanjiProgress,
   
   // Progress operations

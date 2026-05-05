@@ -13,7 +13,7 @@ import { Button, Card, Text, Heading2, Heading3, Body, Caption } from '@/compone
 import { colors, spacing, layout, borderRadius } from '@/theme';
 import { useScreenAnalytics } from '@/hooks';
 import { useAuthStore, useStudyStore, selectDailyProgress } from '@/store';
-import { getVocabByLevel, getDueCards, getVocabByIds, updateUser, getTodayStats } from '@/api';
+import { getVocabByLevel, getDueCards, getVocabByIds, updateUser, getTodayStats, getDueKanjiCards } from '@/api';
 import type { StudyScreenProps, StudyCard, StudyStackParamList, JlptLevel } from '@/types';
 import type { StackNavigationProp } from '@react-navigation/stack';
 
@@ -52,7 +52,15 @@ export function StudyScreen() {
     staleTime: 60 * 1000,
   });
 
+  const { data: dueKanji } = useQuery({
+    queryKey: ['dueKanji', user?.uid],
+    queryFn: () => user?.uid ? getDueKanjiCards(user.uid) : Promise.resolve([]),
+    enabled: !!user?.uid,
+    staleTime: 60 * 1000,
+  });
+
   const dueCount = dueCards?.length || 0;
+  const dueKanjiCount = dueKanji?.length || 0;
   const newCardsAvailable = Math.max(0, (user?.settings?.dailyNewCards || 5) - (todayStats?.newCardsLearned || 0));
 
   const handleLevelChange = useCallback(async (level: JlptLevel) => {
@@ -278,7 +286,7 @@ export function StudyScreen() {
                   漢
                 </Text>
                 <Text variant="label" align="center">Kanji</Text>
-                <Caption align="center">Practice characters</Caption>
+                <Caption align="center">{dueKanjiCount > 0 ? `${dueKanjiCount} due` : 'Practice characters'}</Caption>
               </Card>
             </TouchableOpacity>
           </View>

@@ -56,6 +56,12 @@ export interface KanjiProgress {
   correct: number;
   incorrect: number;
   lastSeen: Date | null;
+  // SM-2 SRS fields (same semantics as VocabProgress)
+  interval: number;
+  easeFactor: number;
+  repetitions: number;
+  nextReview: Date;
+  status: 'new' | 'learning' | 'review' | 'mastered';
 }
 
 export interface GrammarPoint {

@@ -278,7 +278,7 @@ export function StudyScreen() {
                   漢
                 </Text>
                 <Text variant="label" align="center">Kanji</Text>
-                <Caption align="center">Coming soon</Caption>
+                <Caption align="center">Practice characters</Caption>
               </Card>
             </TouchableOpacity>
           </View>
